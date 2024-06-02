@@ -1,8 +1,6 @@
 qemulog.txt
 *.o
 *.iso
-stage2_eltorito
-kernel.elf
 iso/*
 .vscode/*
 serial.txt

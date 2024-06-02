@@ -12,11 +12,6 @@
 #include "pmm.h"
 
 void kmain(multiboot_info_t *info, u32 magic) {
-	// switch_to_real();
-
-	// u32 a = BiosGetExtendedMemorySize();
-	// u32 b = BiosGetMemorySize64MB();
-
 	gdt_init();
 	idt_init();
 	irq_init();
@@ -25,4 +20,7 @@ void kmain(multiboot_info_t *info, u32 magic) {
 
 	fb_init();
 	fb_clear();
+
+	u32 memSize = 1024 + info->mem_lower + info->mem_upper * 64;
+	fb_printf("%d\n", memSize);
 }
