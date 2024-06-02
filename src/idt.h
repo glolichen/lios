@@ -16,9 +16,6 @@ struct __attribute__((packed)) IDTPointer {
 	u32 offset; // aka base
 };
 
-extern struct IDTEntry idt[256];
-extern struct IDTPointer idt_ptr;
-
 void idt_load();
 void idt_init();
 void idt_set_entry(u8 index, u32 isr, u8 flags) ;

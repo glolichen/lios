@@ -21,9 +21,9 @@ void fb_write_cell(u32 pos, char c, FBColor fg, FBColor bg) {
 
 void fb_move_cursor(u16 pos) {
 	outb(FB_COMMAND_PORT, FB_COMMAND_HIGH_BYTE_COMMAND);
-	outb(FB_DATA_PORT, pos & SHORT_HIGH_BYTE);
+	outb(FB_DATA_PORT, pos & U16_HIGH_BYTE);
 	outb(FB_COMMAND_PORT, FB_COMMAND_LOW_BYTE_COMMAND);
-	outb(FB_DATA_PORT, pos & SHORT_LOW_BYTE);
+	outb(FB_DATA_PORT, pos & U16_LOW_BYTE);
 }
 
 void fb_newline() {

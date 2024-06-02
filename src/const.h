@@ -35,24 +35,32 @@ typedef enum {
 	WHITE = 15
 } FBColor;
 
-extern const u32 FB_ROWS, FB_COLS;
-extern const u32 FB_COMMAND_PORT, FB_DATA_PORT;
-extern const u32 FB_COMMAND_LOW_BYTE_COMMAND, FB_COMMAND_HIGH_BYTE_COMMAND;
-extern const u32 SHORT_LOW_BYTE, SHORT_HIGH_BYTE;
+#define FB_ROWS 25
+#define FB_COLS 80
+#define FB_COMMAND_PORT 0x3D4
+#define FB_DATA_PORT 0x3D5
+#define FB_COMMAND_LOW_BYTE_COMMAND 14
+#define FB_COMMAND_HIGH_BYTE_COMMAND 15
 
-extern const u32 SERIAL_COM1_BASE;
-extern const u32 SERIAL_LINE_ENABLE_DLAB;
+#define U16_LOW_BYTE 0x00FF
+#define U16_HIGH_BYTE 0xFF00
 
-extern const u32 FB_ADDRESS;
+#define SERIAL_COM1_BASE 0x3F8
+#define SERIAL_LINE_ENABLE_DLAB 0x80
+
+#define FB_ADDRESS 0xB8000
+
+#define PICM 0x20
+#define PICS 0xA0
+#define PICM_COMMAND PICM
+#define PICS_COMMAND PICS
+#define PICM_DATA (PICM + 1)
+#define PICS_DATA (PICS + 1)
+#define PIC_EOI 0x20
 
 extern const char *EXCEPTIONS[];
 
-extern const u8 PICM;
-extern const u8 PICS;
-extern const u8 PICM_COMMAND;
-extern const u8 PICS_COMMAND;
-extern const u8 PICM_DATA;
-extern const u8 PICS_DATA;
-extern const u8 PIC_EOI;
+#define PMM_BLOCK_SIZE 4096
+
 
 #endif

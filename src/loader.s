@@ -21,6 +21,8 @@ section .text
 
 loader:
 	mov esp, STACK_SIZE + kernal_stack
+	push eax
+	push ebx
 	call kmain
 .loop:
 	jmp .loop

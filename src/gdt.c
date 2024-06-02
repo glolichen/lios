@@ -13,13 +13,14 @@ void gdt_set_entry(u8 index, u32 base, u32 limit, u8 access, u8 flags) {
 	gdt[index].base_high = (base >> 24) & 0xFF;
 }
 
-void gdt_init(){
+void gdt_init() {
 	gdt_set_entry(0, 0, 0, 0, 0);
-	gdt_set_entry(1, 0, 0xFFFFFFFF, 0x9A, 0xC);
-	gdt_set_entry(2, 0, 0xFFFFFFFF, 0x92, 0xC);
+	gdt_set_entry(1, 0, 0xFFFFFFFF, 0x9B, 0xC);
+	gdt_set_entry(2, 0, 0xFFFFFFFF, 0x93, 0xC);
 
 	gdt_ptr.size = sizeof(gdt) - 1;
 	gdt_ptr.offset = (u32) &gdt;
 
 	gdt_load(gdt_ptr.size, gdt_ptr.offset);
 }
+

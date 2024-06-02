@@ -19,9 +19,6 @@ struct __attribute__((packed)) GDTPointer {
 	u32 offset; // aka base
 };
 
-extern struct GDTEntry gdt[3];
-extern struct GDTPointer gdt_ptr;
-
 void gdt_load(u16 size, u32 offset);
 void gdt_init();
 
