@@ -22,9 +22,13 @@ void idt_init() {
 	for (u16 i = 0; i < 256; i++)
 		idt_set_entry(i, 0, 0);
 
+	serial_info("IDT populated (blank)");
+
 	idt_ptr.size = sizeof(idt) - 1;
 	idt_ptr.offset = (u32) &idt;
 
 	isr_init();
     idt_load(idt_ptr.size, idt_ptr.offset);
+
+	serial_info("IDT loaded");
 }

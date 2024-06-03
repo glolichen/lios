@@ -60,7 +60,7 @@ typedef enum {
 
 extern const char *EXCEPTIONS[];
 
+extern const char *MULTIBOOT_ENTRY_TYPES[];
 #define PMM_BLOCK_SIZE 4096
-
 
 #endif

@@ -4,3 +4,4 @@ qemulog.txt
 iso/*
 .vscode/*
 serial.txt
+libgcc.a

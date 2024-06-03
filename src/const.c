@@ -34,3 +34,12 @@ const char *EXCEPTIONS[] = {
 	"Security Exception",
 	"Reserved"
 };
+
+const char *MULTIBOOT_ENTRY_TYPES[] = {
+	"???",
+	"Available",
+	"Reserved",
+	"ACPI reclaimable",
+	"NVS",
+	"Bad"
+};

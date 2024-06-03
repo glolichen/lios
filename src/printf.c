@@ -127,7 +127,7 @@ u32 serial_debug(const char *format, ...) {
 	return length;
 }
 u32 serial_info(const char *format, ...) {
-	print(SERIAL, "INFO: ", 6);
+	print(SERIAL, "INFO:  ", 7);
 
 	va_list arg;
 	va_start(arg, format);
@@ -139,7 +139,7 @@ u32 serial_info(const char *format, ...) {
 	return length;
 }
 u32 serial_warn(const char *format, ...) {
-	print(SERIAL, "WARN: ", 6);
+	print(SERIAL, "WARN:  ", 7);
 
 	va_list arg;
 	va_start(arg, format);

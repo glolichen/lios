@@ -1,5 +1,6 @@
 #include "fb.h"
 #include "io.h"
+#include "printf.h"
 #include "const.h"
 
 u32 cur_row, cur_col;
@@ -12,6 +13,7 @@ u32 get_pos(u32 row, u32 col) {
 void fb_init() {
 	cur_row = 0, cur_col = 0;
 	fb = (char *) FB_ADDRESS;
+	serial_info("Frame buffer initialized");
 }
 
 void fb_write_cell(u32 pos, char c, FBColor fg, FBColor bg) {
@@ -60,4 +62,5 @@ void fb_clear() {
 		for (u32 j = 0; j < FB_COLS; j++)
 			fb_write_cell(get_pos(i, j), ' ', LIGHT_GRAY, BLACK);
 	}
+	serial_info("Frame buffer cleared");
 }

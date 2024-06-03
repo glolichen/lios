@@ -17,10 +17,10 @@ void kmain(multiboot_info_t *info, u32 magic) {
 	irq_init();
 
     __asm__ volatile ("sti");
+	serial_info("Interrupts enabled");
 
 	fb_init();
 	fb_clear();
 
-	u32 memSize = 1024 + info->mem_lower + info->mem_upper * 64;
-	fb_printf("%d\n", memSize);
+	pmm_init(info, magic);
 }

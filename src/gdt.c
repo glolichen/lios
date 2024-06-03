@@ -1,4 +1,5 @@
 #include "gdt.h"
+#include "printf.h"
 #include "const.h"
 
 struct GDTPointer gdt_ptr;
@@ -18,9 +19,13 @@ void gdt_init() {
 	gdt_set_entry(1, 0, 0xFFFFFFFF, 0x9B, 0xC);
 	gdt_set_entry(2, 0, 0xFFFFFFFF, 0x93, 0xC);
 
+	serial_info("GDT populated");
+
 	gdt_ptr.size = sizeof(gdt) - 1;
 	gdt_ptr.offset = (u32) &gdt;
 
 	gdt_load(gdt_ptr.size, gdt_ptr.offset);
+
+	serial_info("GDT loaded");
 }
 

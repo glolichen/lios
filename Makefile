@@ -1,15 +1,15 @@
-OBJECTS = src/loader.o src/const.o src/gdts.o src/gdt.o src/pic.o src/idts.o src/idt.o src/isrs.o src/isr.o src/irqs.o src/irq.o src/io.o src/fb.o 	src/serial.o src/printf.o src/kmain.o src/keyboard.o src/pmm.o
+OBJECTS = src/loader.o src/const.o src/gdts.o src/gdt.o src/pic.o src/idts.o src/idt.o src/isrs.o src/isr.o src/irqs.o src/irq.o src/io.o src/fb.o 	src/serial.o src/printf.o src/kmain.o src/keyboard.o src/pmm.o src/panic.o
 CC = i686-elf-gcc
-CFLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -O2 -g --debug
+CFLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -g --debug
 LD = i686-elf-ld
-LDFLAGS = -T link.ld
+LDFLAGS = -T link.ld -nostdlib
 AS = nasm
 ASFLAGS = -f elf
 
 all: kernel.elf
 
 kernel.elf: $(OBJECTS)
-	i686-elf-gcc -T link.ld -o os.bin -ffreestanding -O2 -nostdlib -lgcc $(OBJECTS)
+	$(CC) -T link.ld -o os.bin -ffreestanding -O2 -nostdlib $(OBJECTS) -L. -lgcc
 
 os.iso: kernel.elf
 	mv os.bin iso/boot/os.bin
@@ -29,4 +29,4 @@ run: clean os.iso
 	$(AS) $(ASFLAGS) $< -o $@
 
 clean:
-	rm -rf src/*.o kernel.elf os.iso qemulog.txt serial.txt os.bin
+	rm -rf src/*.o kernel.elf os.iso qemulog.txt serial.txt

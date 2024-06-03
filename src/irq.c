@@ -25,6 +25,8 @@ void irq_handle_interrupt(struct Registers regs, u8 irq_number, u8 error_code) {
 void irq_init() {
 	pic_remap(0x20, 0x28);
 
+	serial_info("PIC remapped");
+
 	idt_set_entry(32, (u32) irq0,  0x8E);
 	idt_set_entry(33, (u32) irq1,  0x8E);
 	idt_set_entry(34, (u32) irq2,  0x8E);
@@ -42,9 +44,13 @@ void irq_init() {
 	idt_set_entry(46, (u32) irq14, 0x8E);
 	idt_set_entry(47, (u32) irq15, 0x8E);
 
+	serial_info("IRQs loaded");
+
 	// disable all irqs except keypress
 	// outb(0x21, 0xFD);
 	// outb(0xA1, 0xFF);
 
 	irq_set_routine(1, keyboard_routine);
+
+	serial_info("Keyboard IRQ set");
 }
