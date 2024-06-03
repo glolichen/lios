@@ -11,7 +11,9 @@
 #include "printf.h"
 #include "pmm.h"
 
-void kmain(multiboot_info_t *info, u32 magic) {
+extern u32 kernel_end;
+
+void kmain(multiboot_info_t *info, u32 magic, u16 size) {
 	gdt_init();
 	idt_init();
 	irq_init();
@@ -22,5 +24,5 @@ void kmain(multiboot_info_t *info, u32 magic) {
 	fb_init();
 	fb_clear();
 
-	pmm_init(info, magic);
+	pmm_init(info, magic, (u32) &kernel_end);
 }

@@ -21,6 +21,7 @@ section .text
 
 loader:
 	mov esp, STACK_SIZE + kernal_stack
+	push dx
 	push eax
 	push ebx
 	call kmain
