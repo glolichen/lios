@@ -6,9 +6,8 @@
 #include "serial.h"
 #include "printf.h"
 
-const u32 U32_MAX_LENGTH = 10;
-const u32 U64_MAX_LENGTH = 19;
-const u64 POWERS_10[] = {
+const u32 U32_MAX_LENGTH_DEC = 10;
+const u32 POWERS_10[] = {
 	1,
 	10,
 	100,
@@ -18,16 +17,19 @@ const u64 POWERS_10[] = {
 	1000000,
 	10000000,
 	100000000,
-	1000000000,
-	10000000000,
-	100000000000,
-	1000000000000,
-	10000000000000,
-	100000000000000,
-	1000000000000000,
-	10000000000000000,
-	100000000000000000,
-	1000000000000000000,
+	1000000000
+};
+
+const u32 U32_MAX_LENGTH_HEX = 8;
+const u32 POWERS_16[] = {
+	0x1,
+	0x10,
+	0x100,
+	0x1000,
+	0x10000,
+	0x100000,
+	0x1000000,
+	0x10000000
 };
 
 typedef enum {
@@ -56,18 +58,17 @@ u32 printf(Destination dest, const char *format, va_list *arg) {
 				putchar('%', dest);
 				length++;
 			}
-			else if (*(format + 1) == 'd' || *(format + 1) == 'x') {
-				bool is64 = *(format + 1) == 'x';
-				u64 num = is64 ? va_arg(*arg, u64) : va_arg(*arg, u32);
+			else if (*(format + 1) == 'd') {
+				u32 num = va_arg(*arg, u32);
 				if (num == 0) {
 					putchar('0', dest);
 					length++;
 				}
 				else {
 					bool hasPrinted = false;
-					for (int i = (is64 ? U64_MAX_LENGTH : U32_MAX_LENGTH) - 1; i >= 0; i--) {
-						u64 power = POWERS_10[i];
-						u64 divide = num / power;
+					for (int i = U32_MAX_LENGTH_DEC - 1; i >= 0; i--) {
+						u32 power = POWERS_10[i];
+						u32 divide = num / power;
 						if (divide == 0) {
 							if (hasPrinted) {
 								putchar('0', dest);
@@ -77,6 +78,36 @@ u32 printf(Destination dest, const char *format, va_list *arg) {
 						}
 						hasPrinted = true;
 						putchar(divide + '0', dest);
+						length++;
+						num = num % power;
+					}
+				}
+			}
+			else if (*(format + 1) == 'x') {
+				u32 num = va_arg(*arg, u32);
+				
+				putchar('0', dest);
+				putchar('x', dest);
+				length += 2;
+
+				if (num == 0) {
+					putchar('0', dest);
+					length++;
+				}
+				else {
+					bool hasPrinted = false;
+					for (int i = U32_MAX_LENGTH_HEX - 1; i >= 0; i--) {
+						u32 power = POWERS_16[i];
+						u32 divide = num / power;
+						if (divide == 0) {
+							if (hasPrinted) {
+								putchar('0', dest);
+								length++;
+							}
+							continue;
+						}
+						hasPrinted = true;
+						putchar(divide + (divide <= 9 ? '0' : ('A' - 10)), dest);
 						length++;
 						num = num % power;
 					}

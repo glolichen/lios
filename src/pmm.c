@@ -7,43 +7,44 @@
 // each bit represents whether a block of memory is free
 // because we do not use PSE for now, block size is 4KB = 4096B
 u32 *bitmap;
-u64 total_memory, usable_memory, total_blocks, filled_blocks;
+u32 total_memory, usable_memory, total_blocks, filled_blocks;
 
-void pmm_set_block(u64 bit) {
+void set_block(u32 bit) {
 	filled_blocks++;
 	bitmap[bit / 32] |= 1 << (31 - bit % 32);
 }
 
-void pmm_unset_block(u64 bit) {
+void unset_block(u32 bit) {
 	filled_blocks--;
 	bitmap[bit / 32] &= ~(1 << (31 - bit % 32));
 }
 
-void pmm_set_region(u64 base, u64 size) {
+// void set_region(u32 base, u32 size) {
+// 	base /= PMM_BLOCK_SIZE;
+// 	size /= PMM_BLOCK_SIZE;
+// 	for (u32 i = base; i < base + size; i++)
+// 		set_block(i);
+// }
+
+void unset_region(u32 base, u32 size) {
 	base /= PMM_BLOCK_SIZE;
 	size /= PMM_BLOCK_SIZE;
-	for (u64 i = base; i < base + size; i++)
-		pmm_set_block(i);
+	for (u32 i = base; i < base + size; i++)
+		unset_block(i);
+	set_block(0);
 }
 
-void pmm_unset_region(u64 base, u64 size) {
-	base /= PMM_BLOCK_SIZE;
-	size /= PMM_BLOCK_SIZE;
-	for (u64 i = base; i < base + size; i++)
-		pmm_unset_block(i);
-	pmm_set_block(0);
-}
-
-bool pmm_is_block_free(u64 bit) {
-	return (bitmap[bit / 32] >> (31 - bit % 32)) & 1;
-}
+// bool is_block_free(u32 bit) {
+// 	return (bitmap[bit / 32] >> (31 - bit % 32)) & 1;
+// }
 
 // location of first [size] free blocks
-i64 pmm_get_first_free(u64 size) {
+u32 get_first_free(u32 size) {
+	// block 0 can never be free so we can return 0 as an error signal
 	if (total_blocks == 0 || filled_blocks == total_blocks)
-		return -1;
-	i64 address = 0, counter = 0;
-	for (u64 i = 0; i < total_blocks / 32; i++) {
+		return 0;
+	u32 address = 0, counter = 0;
+	for (u32 i = 0; i < total_blocks / 32; i++) {
 		u32 entry = bitmap[i];
 		if (entry == 0) {
 			counter += 8;
@@ -62,7 +63,7 @@ i64 pmm_get_first_free(u64 size) {
 				return address;
 		}
 	}
-	return -1;
+	return 0;
 }
 
 void pmm_init(multiboot_info_t *info, u32 magic, u32 bitmap_location) {
@@ -77,9 +78,9 @@ void pmm_init(multiboot_info_t *info, u32 magic, u32 bitmap_location) {
 	for (u32 i = 0; i < info->mmap_length; i += sizeof(multiboot_memory_map_t)) {
 		multiboot_memory_map_t *map = (multiboot_memory_map_t *) (info->mmap_addr + i);
 		serial_info(
-			"Region %d: start %x, length %x, size %d, type %d (%s)",
+			"Region %d: start %x, length %x, type %d (%s)",
 			i / sizeof(multiboot_memory_map_t),
-			map->addr, map->len, map->size, map->type,
+			(u32) map->addr, (u32) map->len, map->type,
 			MULTIBOOT_ENTRY_TYPES[map->type]
 		);
 		total_memory += map->len;
@@ -89,57 +90,57 @@ void pmm_init(multiboot_info_t *info, u32 magic, u32 bitmap_location) {
 	total_blocks = total_memory / PMM_BLOCK_SIZE;
 	filled_blocks = total_blocks;
 
-	serial_info("Detected total memory size: %xKiB (%x blocks)", total_memory / 1024, total_blocks);
-	serial_info("Detected available memory size: %xKiB", usable_memory / 1024);
+	serial_info("Detected total memory size: %dKiB (%d blocks)", total_memory / 1024, total_blocks);
+	serial_info("Detected available memory size: %dKiB", usable_memory / 1024);
 
 	bitmap = (u32 *) bitmap_location;
-	serial_info("Bitmap initialized at %d", bitmap);
-	for (u64 i = 0; i < total_blocks / 32; i++)
+	serial_info("Bitmap initialized at %x", bitmap);
+	for (u32 i = 0; i < total_blocks / 32; i++)
 		bitmap[i] = 0xFFFFFFFF;
 	
 	for (u32 i = 0; i < info->mmap_length; i += sizeof(multiboot_memory_map_t)) {
 		multiboot_memory_map_t *map = (multiboot_memory_map_t *) (info->mmap_addr + i);
 		if (map->type == MULTIBOOT_MEMORY_AVAILABLE) {
-			pmm_unset_region(map->addr, map->len);
+			unset_region(map->addr, map->len);
 		}
 	}
 
-	serial_info("%x blocks used, %x blocks free", filled_blocks, total_blocks - filled_blocks);
-	for (u64 i = 0; i < 50; i++)
-		serial_info("%x: %d", i, bitmap[i]);
+	serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
+	for (u32 i = 0; i < 50; i++)
+		serial_info("%d: %x", i, bitmap[i]);
 
 	// testing code
-	// pmm_set_block(5);
-	// pmm_set_block(28);
+	set_block(5);
+	set_block(28);
 
-	// void *mem = pmm_allocate_blocks(82);
+	void *mem = pmm_allocate_blocks(82);
 
-	// serial_info("%x blocks used, %x blocks free", filled_blocks, total_blocks - filled_blocks);
-	// for (u64 i = 0; i < 50; i++)
-	// 	serial_info("%x: %d", i, bitmap[i]);
+	serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
+	for (u32 i = 0; i < 50; i++)
+		serial_info("%d: %x", i, bitmap[i]);
 
-	// pmm_free_blocks(mem, 82);
+	pmm_free_blocks(mem, 82);
 
-	// serial_info("%x blocks used, %x blocks free", filled_blocks, total_blocks - filled_blocks);
-	// for (u64 i = 0; i < 50; i++)
-	// 	serial_info("%x: %d", i, bitmap[i]);
+	serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
+	for (u32 i = 0; i < 50; i++)
+		serial_info("%d: %x", i, bitmap[i]);
 }
 
-void *pmm_allocate_blocks(u64 size) {
+void *pmm_allocate_blocks(u32 size) {
 	if (size > total_blocks - filled_blocks)
 		return (void *) 0;
 
-	i64 address = pmm_get_first_free(size);
-	if (address == -1)
+	u32 address = get_first_free(size);
+	if (address == 0)
 		return (void *) 0;
 
-	for (u64 i = 0; i < size; i++)
-		pmm_set_block(address + i);
+	for (u32 i = 0; i < size; i++)
+		set_block(address + i);
 
 	return (void *) (address * PMM_BLOCK_SIZE);
 }
-void pmm_free_blocks(void *address, u64 size) {
-	u64 base = ((u64) address) / PMM_BLOCK_SIZE;
-	for (u64 i = 0; i < size; i++)
-		pmm_unset_block(base + i);
+void pmm_free_blocks(void *address, u32 size) {
+	u32 base = ((u32) address) / PMM_BLOCK_SIZE;
+	for (u32 i = 0; i < size; i++)
+		unset_block(base + i);
 }

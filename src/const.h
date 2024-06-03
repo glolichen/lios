@@ -67,4 +67,6 @@ extern const char *EXCEPTIONS[];
 extern const char *MULTIBOOT_ENTRY_TYPES[];
 #define PMM_BLOCK_SIZE 4096
 
+#define PAGE_TABLES_PER_DIRECTORY 1024
+
 #endif
