@@ -4,5 +4,5 @@
 void panic(char *msg) {
 	fb_printf("kernel panic: %s\n", msg);
 	serial_error("kernel panic: %s\n", msg);
-	__asm__("cli; hlt");
+	asm("cli; hlt");
 }

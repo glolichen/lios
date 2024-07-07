@@ -106,40 +106,42 @@ void pmm_init(multiboot_info_t *info, u32 magic, u32 bitmap_location) {
 	}
 
 	serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
-	for (u32 i = 0; i < 50; i++)
-		serial_info("%d: %x", i, bitmap[i]);
+	// for (u32 i = 0; i < 50; i++)
+	// 	serial_info("%d: %x", i, bitmap[i]);
 
 	// testing code
-	set_block(5);
-	set_block(28);
+	// set_block(5);
+	// set_block(28);
 
-	void *mem = pmm_allocate_blocks(82);
+	// PhysicalAddress mem = pmm_allocate_blocks(82);
 
-	serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
-	for (u32 i = 0; i < 50; i++)
-		serial_info("%d: %x", i, bitmap[i]);
+	// serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
+	// for (u32 i = 0; i < 50; i++)
+	// 	serial_info("%d: %x", i, bitmap[i]);
 
-	pmm_free_blocks(mem, 82);
+	// pmm_free_blocks(mem, 82);
 
-	serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
-	for (u32 i = 0; i < 50; i++)
-		serial_info("%d: %x", i, bitmap[i]);
+	// serial_info("%d blocks used, %d blocks free", filled_blocks, total_blocks - filled_blocks);
+	// for (u32 i = 0; i < 50; i++)
+	// 	serial_info("%d: %x", i, bitmap[i]);
 }
 
-void *pmm_allocate_blocks(u32 size) {
+PhysicalAddress pmm_allocate_blocks(u32 size) {
 	if (size > total_blocks - filled_blocks)
-		return (void *) 0;
+		return 0;
 
 	u32 address = get_first_free(size);
 	if (address == 0)
-		return (void *) 0;
+		return 0;
 
 	for (u32 i = 0; i < size; i++)
 		set_block(address + i);
 
-	return (void *) (address * PMM_BLOCK_SIZE);
+	return address * PMM_BLOCK_SIZE;
 }
-void pmm_free_blocks(void *address, u32 size) {
+void pmm_free_blocks(PhysicalAddress address, u32 size) {
+	if (!address)
+		return;
 	u32 base = ((u32) address) / PMM_BLOCK_SIZE;
 	for (u32 i = 0; i < size; i++)
 		unset_block(base + i);

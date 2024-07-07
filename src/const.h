@@ -20,7 +20,7 @@ typedef uint64_t u64;
 
 #define MAKE_COLOR(fg, bg) (((bg & 0xF) << 4) | (fg & 0xF))
 
-typedef enum {
+enum FBColor {
 	BLACK = 0,
 	BLUE = 1,
 	GREEN = 2,
@@ -37,7 +37,7 @@ typedef enum {
 	LIGHT_MAGENTA = 13,
 	LIGHT_BROWN = 14,
 	WHITE = 15
-} FBColor;
+};
 
 #define FB_ROWS 25
 #define FB_COLS 80
@@ -68,5 +68,48 @@ extern const char *MULTIBOOT_ENTRY_TYPES[];
 #define PMM_BLOCK_SIZE 4096
 
 #define PAGE_TABLES_PER_DIRECTORY 1024
+#define PAGES_PER_TABLE 1024
+
+// no PSE for now
+#define PAGE_SIZE 4096
+
+enum PageDirectoryFlags {
+	PDF_PRESENT = 0x1,
+	PDF_WRITABLE = 0x2,
+	PDF_USER = 0x4,
+	PDF_WRITE_THROUGH = 0x8,
+	PDF_CACHE_DISABLE = 0x10,
+	PDF_ACCESSED = 0x20,
+	PDF_PAE_SET = 0x80,
+};
+enum PageTableFlags {
+	PTF_PRESENT = 0x1,
+	PTF_WRITABLE = 0x2,
+	PTF_USER = 0x4,
+	PTF_WRITE_THROUGH = 0x8,
+	PTF_CACHE_DISABLE = 0x10,
+	PTF_ACCESSED = 0x20,
+	PTF_DIRTY = 0x40,
+	PTF_PAT = 0x80,
+	PTF_GLOBAL = 0x100,
+};
+
+// page directory table is an array of page directory entries
+// page directory entries point to page tables
+// page tables is an array of page table entries
+// page table entries point to pages (physical address (u32))
+typedef u32 PageDirectoryEntry;
+typedef u32 PageTableEntry;
+
+typedef struct {
+	PageDirectoryEntry table[1024];
+} PageDirectoryTable;
+typedef struct {
+	PageTableEntry table[1024];	
+} PageTable;
+
+typedef u32 PhysicalAddress;
+
+#define KERNEL_START 0x00100000
 
 #endif

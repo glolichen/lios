@@ -6,7 +6,13 @@
 __attribute__((noreturn))
 void isr_handle_exception(u8 isr_number, u8 error_code) {
 	fb_printf("ISR #%d: %s, code %d\n", isr_number, EXCEPTIONS[isr_number], error_code);
-	__asm__("cli; hlt");
+	asm("cli; hlt");
+	while (1);
+}
+
+void page_fault_handler(u8 isr_number, u8 error_code) {
+	fb_printf("dont divide by zero idiot");
+	asm("cli; hlt");
 	while (1);
 }
 
@@ -25,7 +31,7 @@ void isr_init() {
 	idt_set_entry(11, (u32) isr11, 0x8E);
 	idt_set_entry(12, (u32) isr12, 0x8E);
 	idt_set_entry(13, (u32) isr13, 0x8E);
-	idt_set_entry(14, (u32) isr14, 0x8E);
+	idt_set_entry(14, (u32) page_fault_handler, 0x8E);
 	idt_set_entry(15, (u32) isr15, 0x8E);
 	idt_set_entry(16, (u32) isr16, 0x8E);
 	idt_set_entry(17, (u32) isr17, 0x8E);

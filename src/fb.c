@@ -16,7 +16,7 @@ void fb_init() {
 	serial_info("Frame buffer initialized");
 }
 
-void fb_write_cell(u32 pos, char c, FBColor fg, FBColor bg) {
+void fb_write_cell(u32 pos, char c, enum FBColor fg, enum FBColor bg) {
 	fb[pos] = c;
 	fb[pos + 1] = MAKE_COLOR(fg, bg);
 }

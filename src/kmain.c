@@ -19,7 +19,7 @@ void kmain(multiboot_info_t *info, u32 magic, u16 size) {
 	idt_init();
 	irq_init();
 
-    __asm__ volatile ("sti");
+    asm("sti");
 	serial_info("Interrupts enabled");
 
 	fb_init();
@@ -27,4 +27,6 @@ void kmain(multiboot_info_t *info, u32 magic, u16 size) {
 
 	pmm_init(info, magic, (u32) &kernel_end);
 	page_init();
+
+	fb_printf("Hello world!\n");
 }
