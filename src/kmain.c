@@ -15,6 +15,9 @@
 extern u32 kernel_end;
 
 void kmain(multiboot_info_t *info, u32 magic, u16 size) {
+	pmm_init(info, magic, (u32) &kernel_end);
+	page_init();
+
 	gdt_init();
 	idt_init();
 	irq_init();
@@ -24,9 +27,6 @@ void kmain(multiboot_info_t *info, u32 magic, u16 size) {
 
 	fb_init();
 	fb_clear();
-
-	pmm_init(info, magic, (u32) &kernel_end);
-	page_init();
 
 	fb_printf("Hello world!\n");
 }

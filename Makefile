@@ -1,6 +1,6 @@
-OBJECTS = src/loader.o src/const.o src/gdts.o src/gdt.o src/pic.o src/idts.o src/idt.o src/isrs.o src/isr.o src/irqs.o src/irq.o src/io.o src/fb.o 	src/serial.o src/printf.o src/kmain.o src/keyboard.o src/pmm.o src/panic.o src/page.o src/pages.o
+OBJECTS = src/loader.o src/const.o src/gdts.o src/gdt.o src/pic.o src/idts.o src/idt.o src/isrs.o src/isr.o src/irqs.o src/irq.o src/io.o src/fb.o 	src/serial.o src/printf.o src/kmain.o src/keyboard.o src/pmm.o src/panic.o src/page.o
 CC = i686-elf-gcc
-CFLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -g --debug
+CFLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -g --debug -masm=intel
 LD = i686-elf-ld
 LDFLAGS = -T link.ld -nostdlib
 AS = nasm

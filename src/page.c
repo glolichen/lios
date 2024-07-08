@@ -112,8 +112,13 @@ void page_init() {
 	if (!directory_table)
 		panic("Out of memory!");
 
-	for (int i = 0; i < 1024; i++)
-		directory_table->table[i] = 0x02;
+	for (int i = 0; i < 1024; i++) {
+		directory_table->table[i] = 0;
+		directory_set_flag(&directory_table->table[i], PDF_WRITABLE);
+	}
+
+	// https://wiki.osdev.org/User:Neon/Recursive_Paging
+	directory_set_addr(&directory_table->table[1023], (PhysicalAddress) directory_table);
 	
 	PageTable *page_table = (PageTable *) pmm_allocate_blocks(1);
 	if (!page_table)
@@ -131,7 +136,14 @@ void page_init() {
 
 	directory_set_flag(&directory_table->table[0], PDF_PRESENT);
 	directory_set_flag(&directory_table->table[0], PDF_WRITABLE);
+	directory_clear_addr(&directory_table->table[0]);
 	directory_set_addr(&directory_table->table[0], (PhysicalAddress) page_table);
 
-	page_enable((PhysicalAddress) directory_table);
+	asm volatile(
+		"mov eax, %0;"
+		"mov cr3, eax;"
+		"mov eax, cr0;"
+		"or eax, 0x80000001;"
+		"mov cr0, eax;" :: "r"(directory_table) : "memory"
+	);
 }
