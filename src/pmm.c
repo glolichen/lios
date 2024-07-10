@@ -69,10 +69,12 @@ u32 get_first_free(u32 size) {
 void pmm_init(multiboot_info_t *info, u32 magic, u32 bitmap_location) {
 	if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
 		panic("Invalid multiboot magic number!");
+
+	// info -= 0xC0000000;
 	if (!(info->flags >> 6 & 0x1))
 		panic("Invalid multiboot memory map!");
 
-	// in bytes
+	// in bytes	
 	total_memory = 0;
 	serial_info("Memory map:");
 	for (u32 i = 0; i < info->mmap_length; i += sizeof(multiboot_memory_map_t)) {
