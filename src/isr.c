@@ -1,7 +1,7 @@
 #include "isr.h"
 #include "idt.h"
 #include "const.h"
-#include "printf.h"
+#include "output.h"
 
 __attribute__((noreturn))
 void isr_handle_exception(u8 isr_number, u8 error_code) {

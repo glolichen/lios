@@ -1,10 +1,10 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "fb.h"
+#include "io.h"
 #include "const.h"
 #include "serial.h"
-#include "printf.h"
+#include "output.h"
 
 const u32 U32_MAX_LENGTH_DEC = 10;
 const u32 POWERS_10[] = {
@@ -35,6 +35,71 @@ const u32 POWERS_16[] = {
 typedef enum {
 	FRAME_BUFFER, SERIAL
 } Destination;
+
+u32 cur_row, cur_col;
+char *fb;
+
+u32 get_pos(u32 row, u32 col) {
+	return col * 2 + row * FB_COLS * 2;
+}
+
+void fb_init() {
+	cur_row = 0, cur_col = 0;
+	// asm volatile("xchg bx, bx");
+	fb = (char *) FB_ADDRESS;
+	serial_info("Frame buffer initialized");
+	// fb_clear();
+	fb_putchar('c');
+}
+
+void fb_write_cell(u32 pos, char c, enum FBColor fg, enum FBColor bg) {
+	fb[pos] = c;
+	fb[pos + 1] = MAKE_COLOR(fg, bg);
+}
+
+void fb_move_cursor(u16 pos) {
+	outb(FB_COMMAND_PORT, FB_COMMAND_HIGH_BYTE_COMMAND);
+	outb(FB_DATA_PORT, pos & U16_HIGH_BYTE);
+	outb(FB_COMMAND_PORT, FB_COMMAND_LOW_BYTE_COMMAND);
+	outb(FB_DATA_PORT, pos & U16_LOW_BYTE);
+}
+
+void fb_newline() {
+	cur_col = 0;
+	if (++cur_row < FB_ROWS)
+		return;
+	cur_row--;
+	for (u32 i = 0; i < FB_ROWS - 1; i++) {
+		for (u32 j = 0; j < FB_COLS; j++) {
+			u32 curLine = get_pos(i, j);
+			u32 nextLine = get_pos(i + 1, j);
+			fb[curLine] = fb[nextLine];
+			fb[curLine + 1] = fb[nextLine + 1];
+		}
+	}
+	for (u32 j = 0; j < FB_COLS; j++)
+		fb[get_pos(cur_row, j)] = ' ';
+}
+
+void fb_putchar(char c) {
+	if (c == '\n') {
+		fb_newline();
+		return;
+	}
+	fb_write_cell(get_pos(cur_row, cur_col), c, LIGHT_GRAY, BLACK);
+	if (++cur_col >= FB_COLS)
+		fb_newline();
+	fb_move_cursor(get_pos(cur_row, cur_col));
+}
+
+void fb_clear() {
+	fb_move_cursor(0);
+	for (u32 i = 0; i < FB_ROWS ; i++) {
+		for (u32 j = 0; j < FB_COLS; j++)
+			fb_write_cell(get_pos(i, j), ' ', LIGHT_GRAY, BLACK);
+	}
+	serial_info("Frame buffer cleared");
+}
 
 void putchar(char c, Destination dest) {
 	if (dest == FRAME_BUFFER)
@@ -154,7 +219,7 @@ u32 serial_debug(const char *format, ...) {
 	u32 length = printf(SERIAL, format, &arg);
 	va_end(arg);
 
-	print(SERIAL, "\n", 1);
+	putchar('\n', SERIAL);
 	return length;
 }
 u32 serial_info(const char *format, ...) {
@@ -166,7 +231,7 @@ u32 serial_info(const char *format, ...) {
 	u32 length = printf(SERIAL, format, &arg);
 	va_end(arg);
 
-	print(SERIAL, "\n", 1);
+	putchar('\n', SERIAL);
 	return length;
 }
 u32 serial_warn(const char *format, ...) {
@@ -178,7 +243,7 @@ u32 serial_warn(const char *format, ...) {
 	u32 length = printf(SERIAL, format, &arg);
 	va_end(arg);
 
-	print(SERIAL, "\n", 1);
+	putchar('\n', SERIAL);
 	return length;
 }
 u32 serial_error(const char *format, ...) {
@@ -190,6 +255,6 @@ u32 serial_error(const char *format, ...) {
 	u32 length = printf(SERIAL, format, &arg);
 	va_end(arg);
 
-	print(SERIAL, "\n", 1);
+	putchar('\n', SERIAL);
 	return length;
 }

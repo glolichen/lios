@@ -1,8 +1,12 @@
-#ifndef PRINTF_H
-#define PRINTF_H
+#ifndef OUTPUT_H
+#define OUTPUT_H
 
 #include <stdarg.h>
 #include "const.h"
+
+void fb_init();
+void fb_putchar(char c);
+void fb_clear();
 
 u32 fb_printf(const char *format, ...);
 u32 serial_debug(const char *format, ...);

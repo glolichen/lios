@@ -39,7 +39,6 @@ void serial_init() {
 }
 
 void serial_putchar(char c) {
+	while (!serial_fifo_empty(SERIAL_COM1_BASE));
 	outb(GET_SERIAL_DATA_PORT(SERIAL_COM1_BASE), c);
-	// serial_write("hello\n", 6);
-	// outb(SERIAL_COM1_BASE, c);
 }

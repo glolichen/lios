@@ -1,5 +1,5 @@
 #include "irq.h"
-#include "printf.h"
+#include "output.h"
 #include "idt.h"
 #include "io.h"
 #include "pic.h"

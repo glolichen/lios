@@ -1,4 +1,4 @@
-#include "printf.h"
+#include "output.h"
 #include "panic.h"
 
 __attribute__((noreturn))

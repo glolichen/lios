@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include "pmm.h"
-#include "printf.h"
+#include "output.h"
 #include "const.h"
 #include "panic.h"
 
@@ -69,8 +69,6 @@ u32 get_first_free(u32 size) {
 void pmm_init(multiboot_info_t *info, u32 magic, u32 bitmap_location) {
 	if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
 		panic("Invalid multiboot magic number!");
-
-	// info -= 0xC0000000;
 	if (!(info->flags >> 6 & 0x1))
 		panic("Invalid multiboot memory map!");
 
@@ -80,9 +78,9 @@ void pmm_init(multiboot_info_t *info, u32 magic, u32 bitmap_location) {
 	for (u32 i = 0; i < info->mmap_length; i += sizeof(multiboot_memory_map_t)) {
 		multiboot_memory_map_t *map = (multiboot_memory_map_t *) (info->mmap_addr + i);
 		serial_info(
-			"Region %d: start %x, length %x, type %d (%s)",
+			"Region %d: start %x, length %x, %s",
 			i / sizeof(multiboot_memory_map_t),
-			(u32) map->addr, (u32) map->len, map->type,
+			(u32) map->addr, (u32) map->len,
 			MULTIBOOT_ENTRY_TYPES[map->type]
 		);
 		total_memory += map->len;

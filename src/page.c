@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include "page.h"
-#include "printf.h"
+#include "output.h"
 #include "panic.h"
 #include "const.h"
 #include "pmm.h"

@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include "idt.h"
 #include "io.h"
-#include "printf.h"
+#include "output.h"
 #include "pic.h"
 #include "isr.h"
 #include "irq.h"

@@ -1,25 +1,43 @@
 ENTRY(_start)
 SECTIONS {
-	. = 0x00100000;
-
-	.multiboot ALIGN(0x1000): {
+	.multiboot : {
 		*(.multiboot)
 	}
 
-	. += 0xC0000000;
+	KERNEL_VMA = 0x0;
+	. = 0x00100000;
 
-	.text ALIGN(0x1000): AT(ADDR(.text) - 0xC0000000){
+	.boot_text BLOCK(4K) : ALIGN(4K) {
+		*(.boot_text)
+	}
+	.boot_rodata BLOCK(4K) : ALIGN(4K) {
+		*(.boot_rodata)
+	}
+	.boot_data BLOCK(4K) : ALIGN(4K) {
+		*(.boot_data)
+	}
+	.boot_bss BLOCK(4K) : ALIGN(4K) {
+		*(.boot_bss)
+	}
+
+	. += KERNEL_VMA;
+
+	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA) {
 		*(.text)
 	}
 
-	.data ALIGN(0x1000): AT(ADDR(.data) - 0xC0000000){
+	.rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_VMA) {
+		*(.rodata)
+	}
+
+	.data ALIGN(4K) : AT(ADDR(.data) - KERNEL_VMA) {
 		*(.data)
 	}
 
-	.bss ALIGN(0x1000): AT(ADDR(.bss) - 0xC0000000){
+	.bss ALIGN(4K) : AT(ADDR(.bss) - KERNEL_VMA) {
 		*(COMMON)
 		*(.bss)
 	}
 
-	_kernel_end = .;
+	kernel_end = .;
 }

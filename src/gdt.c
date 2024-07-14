@@ -1,5 +1,5 @@
 #include "gdt.h"
-#include "printf.h"
+#include "output.h"
 #include "const.h"
 
 struct GDTPointer gdt_ptr;
