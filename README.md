@@ -8,4 +8,4 @@ Sources/credits:
  * little book on os development
  * writing a simple operating system from scratch
  * osdev forum and r/osdev on reddit for help
- 
+ * https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/40332.pdf P597
