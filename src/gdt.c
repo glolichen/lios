@@ -28,4 +28,3 @@ void gdt_init() {
 
 	serial_info("GDT loaded");
 }
-

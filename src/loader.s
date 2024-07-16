@@ -269,6 +269,10 @@ long_mode_start:
 	mov ss, ax
 	; move to rbx for use in kmain
 	mov rbx, [mboot_struct_ptr]
+	; xchg bx, bx
+	; sti
+	; mov dword [0x5841234], 0
+	; mov dword [0x0000000080102752], 0
 	call kmain
 	jmp $
 

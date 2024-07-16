@@ -186,5 +186,6 @@ isr31:
 	jmp isr_handler
 
 isr_handler:
+	xchg bx, bx
 	call isr_handle_exception
 	iret

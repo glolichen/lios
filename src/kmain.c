@@ -41,14 +41,15 @@ void kmain() {
 	asm volatile("mov %0, rbx" : "=rm"(info));
 
 	// TODO FIX THE SERIAL AT SOME POINT
-	// TODO higher half mapping doesn't work - check bootstrap asm code
 	serial_init();
 
 	idt_init();
 	irq_init();
-	asm volatile("xchg bx, bx");
+	// asm volatile("xchg bx, bx");
 	// triple faults here after enabling interrupt
 	asm volatile("sti");
+
+	// int a = 1 / 0;
 
 	fb_init();
 	fb_printf("Hello world!\n");
