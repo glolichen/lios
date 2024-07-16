@@ -27,22 +27,22 @@ void irq_init() {
 
 	serial_info("PIC remapped");
 
-	idt_set_entry(32, (u32) irq0,  0x8E);
-	idt_set_entry(33, (u32) irq1,  0x8E);
-	idt_set_entry(34, (u32) irq2,  0x8E);
-	idt_set_entry(35, (u32) irq3,  0x8E);
-	idt_set_entry(36, (u32) irq4,  0x8E);
-	idt_set_entry(37, (u32) irq5,  0x8E);
-	idt_set_entry(38, (u32) irq6,  0x8E);
-	idt_set_entry(39, (u32) irq7,  0x8E);
-	idt_set_entry(40, (u32) irq8,  0x8E);
-	idt_set_entry(41, (u32) irq9,  0x8E);
-	idt_set_entry(42, (u32) irq10, 0x8E);
-	idt_set_entry(43, (u32) irq11, 0x8E);
-	idt_set_entry(44, (u32) irq12, 0x8E);
-	idt_set_entry(45, (u32) irq13, 0x8E);
-	idt_set_entry(46, (u32) irq14, 0x8E);
-	idt_set_entry(47, (u32) irq15, 0x8E);
+	idt_set_entry(32, (u64) irq0,  0x8E);
+	idt_set_entry(33, (u64) irq1,  0x8E);
+	idt_set_entry(34, (u64) irq2,  0x8E);
+	idt_set_entry(35, (u64) irq3,  0x8E);
+	idt_set_entry(36, (u64) irq4,  0x8E);
+	idt_set_entry(37, (u64) irq5,  0x8E);
+	idt_set_entry(38, (u64) irq6,  0x8E);
+	idt_set_entry(39, (u64) irq7,  0x8E);
+	idt_set_entry(40, (u64) irq8,  0x8E);
+	idt_set_entry(41, (u64) irq9,  0x8E);
+	idt_set_entry(42, (u64) irq10, 0x8E);
+	idt_set_entry(43, (u64) irq11, 0x8E);
+	idt_set_entry(44, (u64) irq12, 0x8E);
+	idt_set_entry(45, (u64) irq13, 0x8E);
+	idt_set_entry(46, (u64) irq14, 0x8E);
+	idt_set_entry(47, (u64) irq15, 0x8E);
 
 	serial_info("IRQs loaded");
 

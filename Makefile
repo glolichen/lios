@@ -1,5 +1,5 @@
 # OBJECTS = src/loader.o src/const.o src/gdts.o src/gdt.o src/pic.o src/idts.o src/idt.o src/isrs.o src/isr.o src/irqs.o src/irq.o src/io.o src/serial.o src/output.o src/kmain.o src/keyboard.o src/pmm.o src/panic.o src/page.o
-OBJECTS = src/loader.o
+OBJECTS = src/loader.o src/kmain.o src/const.o src/output.o src/io.o src/serial.o src/idt.o src/isr.o src/isrs.o src/irq.o src/irqs.o src/pic.o src/keyboard.o
 
 all: kernel.elf
 
@@ -20,7 +20,7 @@ build: clean os.iso
 
 %.o: %.c
 	# TODO fix
-	x86_64-elf-gcc -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -g --debug -z max-page-size=0x1000 -mcmodel=large -masm=intel -fPIC $< -o $@
+	x86_64-elf-gcc -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -z max-page-size=0x1000 -mcmodel=large -masm=intel $< -o $@
 
 %.o: %.s
 	nasm -f elf64 $< -o $@

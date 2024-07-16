@@ -1,13 +1,17 @@
 ENTRY(_start)
 SECTIONS {
+	/* KERNEL_OFFSET = 0xC0000000; */
+	KERNEL_OFFSET = 0xFFFFFFFF80000000;
+	.mboot ALIGN(4K) : AT(ADDR(.mboot)) {
+		*(.mboot)
+	}
+
 	. = 1M;
 
 	.bootstrap ALIGN(4K) : AT(ADDR(.bootstrap)) {
-		*(.mboot)
-		src/loader.o (.text)
+		src/loader.o(.text)
 	}
 
-	KERNEL_OFFSET = 0xFFFFFFFF80000000;
 	. += KERNEL_OFFSET;
 
 	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_OFFSET) {

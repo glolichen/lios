@@ -1,8 +1,9 @@
 bochslog.txt
+qemulog.txt
 *.o
 *.iso
 iso/*
 .vscode/*
-serial.txt
+serial.*
 libgcc.a
 bx_enh_dbg.ini

@@ -1,17 +1,19 @@
 global _start
 global mboot
 
+extern kmain
+
 bits 32
 
 section .text
 	%define no_offset(addr) addr - 0xFFFFFFFF80000000
 
-; TODO consider multiboot 2
-	MULTIBOOT_MAGIC equ 0x1BADB002
-	MULTIBOOT_FLAGS equ 0x0
-	MULTIBOOT_CHECK equ -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
+	MBOOT_MAGIC equ 0xE85250D6
+	MBOOT_ARCH equ 0
+	MBOOT_HEADER_LENGTH equ no_offset(mboot_end) - no_offset(mboot)
+	MBOOT_CHECK equ 0x100000000 - (MBOOT_MAGIC + MBOOT_ARCH + MBOOT_HEADER_LENGTH)
 
-	NOT_MULTIBOOT db "Not multiboot!"
+	NOT_MULTIBOOT db "Not multiboot2!"
 	NOT_MULTIBOOT_SIZE equ $-NOT_MULTIBOOT
 
 	NO_CPUID db "CPUID not available!"
@@ -26,10 +28,15 @@ section .text
 	FRAME_BUFFER equ 0xB8000
 
 mboot:
-	align 32
-	dd MULTIBOOT_MAGIC
-	dd MULTIBOOT_FLAGS
-	dd MULTIBOOT_CHECK
+	align 8
+	dd MBOOT_MAGIC
+	dd MBOOT_ARCH
+	dd MBOOT_HEADER_LENGTH
+	dd MBOOT_CHECK
+	dw 0
+	dw 0
+	dd 0
+mboot_end:
 
 ; clear the "booting os" message
 clear_message:
@@ -85,20 +92,21 @@ error_end:
 
 
 _start:
+	cli
 	call clear_message
 
-	cli
-	mov esp, no_offset(stack)
-	mov ebp, no_offset(stack)
+	mov esp, no_offset(stack_top)
+	mov ebp, no_offset(stack_top)
+	; save multiboot struct pointer before ebx gets used
+	mov [no_offset(mboot_struct_ptr)], ebx
 
-	cmp eax, 0x2BADB002
+	cmp eax, 0x36D76289
 	je is_multiboot
 	mov eax, NOT_MULTIBOOT
 	mov ebx, NOT_MULTIBOOT_SIZE
 	call error
 
 is_multiboot:
-	; pushad
 	; https://wiki.osdev.org/CPUID#Checking_CPUID_availability
 	; https://wiki.osdev.org/Setting_Up_Long_Mode
 	; check if cpu has cpuid
@@ -250,7 +258,6 @@ populate_pt_low_loop:
 
 	lgdt [no_offset(gdtr)]
 	jmp 0x08:long_mode_start
-	; popad
 
 bits 64
 long_mode_start:
@@ -260,6 +267,9 @@ long_mode_start:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
+	; move to rbx for use in kmain
+	mov rbx, [mboot_struct_ptr]
+	call kmain
 	jmp $
 
 section .bss
@@ -278,11 +288,15 @@ pt_low:
 	resb 0x1000 * 1024
 pt_high:
 	resb 0x1000 * 1024
-
-	stack resb 0x4000
+stack_bottom:
+	resb 0x4000
+stack_top:
+; reserve 4 bytes = 32 bits for mboot struct ptr 
+mboot_struct_ptr:
+	resd 1
 	
-
-section .rodata
+; must not have rodata, otherwise grub gives the "segment crosses 4GiB border" error
+; section .rodata
 
 section .data
 gdtr:
@@ -306,4 +320,5 @@ gdt_data:
 	db 0x92
 	db 0xCF
 	db 0x0
+; maybe add a task state segment?
 gdt_end:

@@ -45,11 +45,9 @@ u32 get_pos(u32 row, u32 col) {
 
 void fb_init() {
 	cur_row = 0, cur_col = 0;
-	// asm volatile("xchg bx, bx");
 	fb = (char *) FB_ADDRESS;
 	serial_info("Frame buffer initialized");
-	// fb_clear();
-	fb_putchar('c');
+	fb_clear();
 }
 
 void fb_write_cell(u32 pos, char c, enum FBColor fg, enum FBColor bg) {
