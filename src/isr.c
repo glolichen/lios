@@ -7,7 +7,7 @@ __attribute__((noreturn))
 void isr_handle_exception(u8 isr_number, u8 error_code) {
 	fb_printf("ISR #%d: %s, code %d\n", isr_number, EXCEPTIONS[isr_number], error_code);
 	asm("cli; hlt");
-	while (1);
+	// while (1);
 }
 
 void isr_init() {

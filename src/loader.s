@@ -256,7 +256,7 @@ populate_pt_low_loop:
 	or eax, 1 << 31
 	mov cr0, eax
 
-	lgdt [no_offset(gdtr)]
+	lgdt [no_offset(gdt_ptr)]
 	jmp 0x08:long_mode_start
 
 bits 64
@@ -267,9 +267,12 @@ long_mode_start:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
-	; move to rbx for use in kmain
-	mov rbx, [mboot_struct_ptr]
-	; xchg bx, bx
+	; move to registers for use in kmain
+	mov r8, gdt_tss
+	mov r9, tss_start
+	mov r10, tss_end
+	mov r11, tss_ptr
+	mov r12, [mboot_struct_ptr]
 	; sti
 	; mov dword [0x5841234], 0
 	; mov dword [0x0000000080102752], 0
@@ -297,32 +300,87 @@ stack_bottom:
 stack_top:
 ; reserve 4 bytes = 32 bits for mboot struct ptr 
 mboot_struct_ptr:
-	resd 1
+	resb 4
+; reserve 8 bytes = 64 bits for interrupt stack table
+ist1:
+	resb 8
+ist2:
+	resb 8
+ist3:
+	resb 8
+ist4:
+	resb 8
+ist5:
+	resb 8
+ist6:
+	resb 8
+ist7:
+	resb 8
+privilege0_stack:
+	resb 0x1000
+privilege1_stack:
+	resb 0x1000
+privilege2_stack:
+	resb 0x1000
 	
-; must not have rodata, otherwise grub gives the "segment crosses 4GiB border" error
+; grub gives the "segment crosses 4GiB border" error if there is rodata
 ; section .rodata
 
 section .data
-gdtr:
-	dw no_offset(gdt_end) - no_offset(gdt) - 1
-	dq no_offset(gdt)
-gdt:
+io_permission_bitmap:
+
+tss_ptr:
+	dd 3 << 3 ; selector (TSS is 3rd GDT entry)
+	dd 0 ; attributes (???)
+	dw no_offset(tss_end) - no_offset(tss_start) - 1
+	dq no_offset(tss_start)
+tss_start:
+	dd 0 ; reserved
+	dq no_offset(privilege0_stack)
+	dq no_offset(privilege1_stack)
+	dq no_offset(privilege2_stack)
+	dq 0 ; reserved
+	dq no_offset(ist1)
+	dq no_offset(ist2)
+	dq no_offset(ist3)
+	dq no_offset(ist4)
+	dq no_offset(ist5)
+	dq no_offset(ist6)
+	dq no_offset(ist7)
+	dq 0 ; reserved
+	dw 0 ; reserved
+	dw 0 ; no I/O for now
+tss_end:
+
+gdt_ptr:
+	dw no_offset(gdt_end) - no_offset(gdt_start) - 1
+	dq no_offset(gdt_start)
+gdt_start:
 gdt_null:
 	dd 0x0
 	dd 0x0
 gdt_code:
-	dw 0xFFFF
-	dw 0x0
-	db 0x0
-	db 0x9A
-	db 0xAF
-	db 0x0
+	dw 0xFFFF ; limit
+	dw 0x0 ; base
+	db 0x0 ; base
+	db 0x9A ; access
+	db 0xAF ; flags and limit
+	db 0x0 ; base
 gdt_data:
 	dw 0xFFFF
 	dw 0x0
 	db 0x0
 	db 0x92
-	db 0xCF
+	db 0xAF ; maybe 0xAF? (before 0xCF)
 	db 0x0
-; maybe add a task state segment?
+; filled by C code in kmain
+gdt_tss:
+	dw 0 ; limit
+	dw 0 ; base
+	db 0 ; base
+	db 0 ; access
+	db 0 ; flags and limit
+	db 0 ; base
+	dd 0 ; base
+	dd 0 ; reserved
 gdt_end:
