@@ -57,7 +57,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, multiboot_
 	tss_entry->base_mid = (tss_start >> 16) & 0xFF;
 	tss_entry->access = 0x89;
 	tss_entry->flags_and_limit = 0x40;
-	tss_entry->flags_and_limit = (limit >> 16) & 0xF | (0 << 4);
+	tss_entry->flags_and_limit = ((limit >> 16) & 0xF) | (0 << 4);
 	tss_entry->base_high = (tss_start >> 24) & 0xFF;
 	tss_entry->base_highest = (tss_start >> 32) & 0xFFFFFFFF;
 	tss_entry->reserved = 0;

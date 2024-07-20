@@ -39,150 +39,158 @@ isr0:
 	jmp isr_handler
 
 isr1:
-	mov rdi, 0
-	mov rsi, 1
+	mov rdi, 1
+	mov rsi, 0
 	jmp isr_handler
 
 isr2:
-	mov rdi, 0
-	mov rsi, 2
+	mov rdi, 2
+	mov rsi, 0
 	jmp isr_handler
 
 isr3:
-	mov rdi, 0
-	mov rsi, 3
+	mov rdi, 3
+	mov rsi, 0
 	jmp isr_handler
 
 isr4:
-	mov rdi, 0
-	mov rsi, 4
+	mov rdi, 4
+	mov rsi, 0
 	jmp isr_handler
 
 isr5:
-	mov rdi, 0
-	mov rsi, 5
+	mov rdi, 5
+	mov rsi, 0
 	jmp isr_handler
 
 isr6:
-	mov rdi, 0
-	mov rsi, 6
+	mov rdi, 6
+	mov rsi, 0
 	jmp isr_handler
 
 isr7:
-	mov rdi, 0
-	mov rsi, 7
+	mov rdi, 7
+	mov rsi, 0
 	jmp isr_handler
 
 isr8:
 	mov rdi, 8
+	pop rsi
 	jmp isr_handler
 
 isr9:
-	mov rdi, 0
-	mov rsi, 9
+	mov rdi, 9
+	mov rsi, 0
 	jmp isr_handler
 
 isr10:
 	mov rdi, 10
+	pop rsi
 	jmp isr_handler
 
 isr11:
 	mov rdi, 11
+	pop rsi
 	jmp isr_handler
 
 isr12:
 	mov rdi, 12
+	pop rsi
 	jmp isr_handler
 
 isr13:
 	mov rdi, 13
+	pop rsi
 	jmp isr_handler
 
 isr14:
 	mov rdi, 14
+	pop rsi
 	jmp isr_handler
 
 isr15:
-	mov rdi, 0
-	mov rsi, 15
+	mov rdi, 15
+	mov rsi, 0
 	jmp isr_handler
 
 isr16:
-	mov rdi, 0
-	mov rsi, 16
+	mov rdi, 16
+	mov rsi, 0
 	jmp isr_handler
 
 isr17:
 	mov rdi, 17
+	pop rsi
 	jmp isr_handler
 
 isr18:
-	mov rdi, 0
-	mov rsi, 18
+	mov rdi, 18
+	mov rsi, 0
 	jmp isr_handler
 
 isr19:
-	mov rdi, 0
-	mov rsi, 19
+	mov rdi, 19
+	mov rsi, 0
 	jmp isr_handler
 
 isr20:
-	mov rdi, 0
-	mov rsi, 20
+	mov rdi, 20
+	mov rsi, 0
 	jmp isr_handler
 
 isr21:
-	mov rdi, 0
-	mov rsi, 21
+	mov rdi, 21
+	mov rsi, 0
 	jmp isr_handler
 
 isr22:
-	mov rdi, 0
-	mov rsi, 22
+	mov rdi, 22
+	mov rsi, 0
 	jmp isr_handler
 
 isr23:
-	mov rdi, 0
-	mov rsi, 23
+	mov rdi, 23
+	mov rsi, 0
 	jmp isr_handler
 
 isr24:
-	mov rdi, 0
-	mov rsi, 24
+	mov rdi, 24
+	mov rsi, 0
 	jmp isr_handler
 
 isr25:
-	mov rdi, 0
-	mov rsi, 25
+	mov rdi, 25
+	mov rsi, 0
 	jmp isr_handler
 
 isr26:
-	mov rdi, 0
-	mov rsi, 26
+	mov rdi, 26
+	mov rsi, 0
 	jmp isr_handler
 
 isr27:
-	mov rdi, 0
-	mov rsi, 27
+	mov rdi, 27
+	mov rsi, 0
 	jmp isr_handler
 
 isr28:
-	mov rdi, 0
-	mov rsi, 28
+	mov rdi, 28
+	mov rsi, 0
 	jmp isr_handler
 
 isr29:
-	mov rdi, 0
-	mov rsi, 29
+	mov rdi, 29
+	mov rsi, 0
 	jmp isr_handler
 
 isr30:
 	mov rdi, 30
+	pop rsi
 	jmp isr_handler
 
 isr31:
-	mov rdi, 0
-	mov rsi, 31
+	mov rdi, 31
+	mov rsi, 0
 	jmp isr_handler
 
 isr_handler:

@@ -14,11 +14,12 @@ void irq_set_routine(u8 irq_number, void (*routine)(struct Registers *)) {
 	irq_routines[irq_number] = routine;
 }
 
-void irq_handle_interrupt(struct Registers regs, u8 irq_number, u8 error_code) {
+// void irq_handle_interrupt(struct Registers regs, u8 irq_number, u8 error_code) {
+void irq_handle_interrupt(u64 irq_number, u64 error_code) {
 	irq_number -= 32;
-	void (*routine)(struct Registers *) = irq_routines[irq_number];
-	if (routine)
-		routine(&regs);
+	// void (*routine)(struct Registers *) = irq_routines[irq_number];
+	// if (routine)
+	// 	routine(&regs);
 	pic_send_eoi(irq_number);
 }
 
