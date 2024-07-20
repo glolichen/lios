@@ -34,158 +34,157 @@ global isr30
 global isr31
 
 isr0:
-	push byte 0
-	push byte 0
+	mov rdi, 0
+	mov rsi, 0
 	jmp isr_handler
 
 isr1:
-	push byte 0
-	push byte 1
+	mov rdi, 0
+	mov rsi, 1
 	jmp isr_handler
 
 isr2:
-	push byte 0
-	push byte 2
+	mov rdi, 0
+	mov rsi, 2
 	jmp isr_handler
 
 isr3:
-	push byte 0
-	push byte 3
+	mov rdi, 0
+	mov rsi, 3
 	jmp isr_handler
 
 isr4:
-	push byte 0
-	push byte 4
+	mov rdi, 0
+	mov rsi, 4
 	jmp isr_handler
 
 isr5:
-	push byte 0
-	push byte 5
+	mov rdi, 0
+	mov rsi, 5
 	jmp isr_handler
 
 isr6:
-	push byte 0
-	push byte 6
+	mov rdi, 0
+	mov rsi, 6
 	jmp isr_handler
 
 isr7:
-	push byte 0
-	push byte 7
+	mov rdi, 0
+	mov rsi, 7
 	jmp isr_handler
 
 isr8:
-	push byte 8
+	mov rdi, 8
 	jmp isr_handler
 
 isr9:
-	push byte 0
-	push byte 9
+	mov rdi, 0
+	mov rsi, 9
 	jmp isr_handler
 
 isr10:
-	push byte 10
+	mov rdi, 10
 	jmp isr_handler
 
 isr11:
-	push byte 11
+	mov rdi, 11
 	jmp isr_handler
 
 isr12:
-	push byte 12
+	mov rdi, 12
 	jmp isr_handler
 
 isr13:
-	push byte 13
+	mov rdi, 13
 	jmp isr_handler
 
 isr14:
-	push byte 14
+	mov rdi, 14
 	jmp isr_handler
 
 isr15:
-	push byte 0
-	push byte 15
+	mov rdi, 0
+	mov rsi, 15
 	jmp isr_handler
 
 isr16:
-	push byte 0
-	push byte 16
+	mov rdi, 0
+	mov rsi, 16
 	jmp isr_handler
 
 isr17:
-	push byte 17
+	mov rdi, 17
 	jmp isr_handler
 
 isr18:
-	push byte 0
-	push byte 18
+	mov rdi, 0
+	mov rsi, 18
 	jmp isr_handler
 
 isr19:
-	push byte 0
-	push byte 19
+	mov rdi, 0
+	mov rsi, 19
 	jmp isr_handler
 
 isr20:
-	push byte 0
-	push byte 20
+	mov rdi, 0
+	mov rsi, 20
 	jmp isr_handler
 
 isr21:
-	push byte 0
-	push byte 21
+	mov rdi, 0
+	mov rsi, 21
 	jmp isr_handler
 
 isr22:
-	push byte 0
-	push byte 22
+	mov rdi, 0
+	mov rsi, 22
 	jmp isr_handler
 
 isr23:
-	push byte 0
-	push byte 23
+	mov rdi, 0
+	mov rsi, 23
 	jmp isr_handler
 
 isr24:
-	push byte 0
-	push byte 24
+	mov rdi, 0
+	mov rsi, 24
 	jmp isr_handler
 
 isr25:
-	push byte 0
-	push byte 25
+	mov rdi, 0
+	mov rsi, 25
 	jmp isr_handler
 
 isr26:
-	push byte 0
-	push byte 26
+	mov rdi, 0
+	mov rsi, 26
 	jmp isr_handler
 
 isr27:
-	push byte 0
-	push byte 27
+	mov rdi, 0
+	mov rsi, 27
 	jmp isr_handler
 
 isr28:
-	push byte 0
-	push byte 28
+	mov rdi, 0
+	mov rsi, 28
 	jmp isr_handler
 
 isr29:
-	push byte 0
-	push byte 29
+	mov rdi, 0
+	mov rsi, 29
 	jmp isr_handler
 
 isr30:
-	push byte 30
+	mov rdi, 30
 	jmp isr_handler
 
 isr31:
-	push byte 0
-	push byte 31
+	mov rdi, 0
+	mov rsi, 31
 	jmp isr_handler
 
 isr_handler:
-	xchg bx, bx
 	call isr_handle_exception
 	iret

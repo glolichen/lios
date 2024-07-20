@@ -2,6 +2,7 @@ global _start
 global mboot
 
 extern kmain
+extern test
 
 bits 32
 
@@ -95,8 +96,8 @@ _start:
 	cli
 	call clear_message
 
-	mov esp, no_offset(stack_top)
-	mov ebp, no_offset(stack_top)
+	mov esp, no_offset(stack_bottom)
+	mov ebp, no_offset(stack_bottom)
 	; save multiboot struct pointer before ebx gets used
 	mov [no_offset(mboot_struct_ptr)], ebx
 
@@ -268,14 +269,10 @@ long_mode_start:
 	mov gs, ax
 	mov ss, ax
 	; move to registers for use in kmain
-	mov r8, gdt_tss
-	mov r9, tss_start
-	mov r10, tss_end
-	mov r11, tss_ptr
-	mov r12, [mboot_struct_ptr]
-	; sti
-	; mov dword [0x5841234], 0
-	; mov dword [0x0000000080102752], 0
+	mov rdi, gdt_tss
+	mov rsi, tss_start
+	mov rdx, tss_end
+	mov rcx, [mboot_struct_ptr]
 	call kmain
 	jmp $
 
@@ -323,17 +320,11 @@ privilege1_stack:
 privilege2_stack:
 	resb 0x1000
 	
-; grub gives the "segment crosses 4GiB border" error if there is rodata
 ; section .rodata
 
 section .data
 io_permission_bitmap:
 
-tss_ptr:
-	dd 3 << 3 ; selector (TSS is 3rd GDT entry)
-	dd 0 ; attributes (???)
-	dw no_offset(tss_end) - no_offset(tss_start) - 1
-	dq no_offset(tss_start)
 tss_start:
 	dd 0 ; reserved
 	dq no_offset(privilege0_stack)

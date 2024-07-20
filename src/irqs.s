@@ -18,83 +18,83 @@ global irq14
 global irq15
 
 irq0:
-	push byte 0
-	push byte 32
+	mov rdi, 0
+	mov rsi, 32
 	jmp irq_handler
 
 irq1:
-	push byte 0
-	push byte 33
+	mov rdi, 0
+	mov rsi, 33
 	jmp irq_handler
 
 irq2:
-	push byte 0
-	push byte 34
+	mov rdi, 0
+	mov rsi, 34
 	jmp irq_handler
 
 irq3:
-	push byte 0
-	push byte 35
+	mov rdi, 0
+	mov rsi, 35
 	jmp irq_handler
 
 irq4:
-	push byte 0
-	push byte 36
+	mov rdi, 0
+	mov rsi, 36
 	jmp irq_handler
 
 irq5:
-	push byte 0
-	push byte 37
+	mov rdi, 0
+	mov rsi, 37
 	jmp irq_handler
 
 irq6:
-	push byte 0
-	push byte 38
+	mov rdi, 0
+	mov rsi, 38
 	jmp irq_handler
 
 irq7:
-	push byte 0
-	push byte 39
+	mov rdi, 0
+	mov rsi, 39
 	jmp irq_handler
 
 irq8:
-	push byte 0
-	push byte 40
+	mov rdi, 0
+	mov rsi, 40
 	jmp irq_handler
 
 irq9:
-	push byte 0
-	push byte 41
+	mov rdi, 0
+	mov rsi, 41
 	jmp irq_handler
 
 irq10:
-	push byte 0
-	push byte 42
+	mov rdi, 0
+	mov rsi, 42
 	jmp irq_handler
 
 irq11:
-	push byte 0
-	push byte 43
+	mov rdi, 0
+	mov rsi, 43
 	jmp irq_handler
 
 irq12:
-	push byte 0
-	push byte 44
+	mov rdi, 0
+	mov rsi, 44
 	jmp irq_handler
 
 irq13:
-	push byte 0
-	push byte 45
+	mov rdi, 0
+	mov rsi, 45
 	jmp irq_handler
 
 irq14:
-	push byte 0
-	push byte 46
+	mov rdi, 0
+	mov rsi, 46
 	jmp irq_handler
 
 irq15:
-	push byte 0
-	push byte 47
+	mov rdi, 0
+	mov rsi, 47
 	jmp irq_handler
 
 ; https://forum.osdev.org/viewtopic.php?f=1&t=56532
@@ -135,5 +135,5 @@ irq_handler:
 	pop rbx
 	pop rax
 
-	add esp, 8
+	; add esp, 8
 	iret

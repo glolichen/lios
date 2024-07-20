@@ -36,7 +36,7 @@ extern void isr29();
 extern void isr30();
 extern void isr31();
 
-void isr_handle_exception(u8 isr_number, u8 error_code);
+void isr_handle_exception(u64 isr_number, u64 error_code);
 void isr_init();
 
 #endif

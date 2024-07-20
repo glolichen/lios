@@ -44,33 +44,9 @@ struct __attribute__((packed)) GDTEntryTSS {
 	u32 reserved;
 };
 
-struct __attribute__((packed)) TSSPointer {
-	u32 selector;
-	u32 attributes;
-	u32 limit;
-	u64 base;
-};
-
-void kmain() {
-	// TODO find a better way
-	// move the mboot ptr from rbx because i can't figure out function calling with params
-	// evil trick but i guess it works
-	struct GDTEntryTSS *tss_entry;
-	u64 tss_start, tss_end;
-	struct TSSPointer *tss_register;
-	multiboot_info_t *info;
-	asm volatile("mov %0, r8" : "=rm"(tss_entry));
-	asm volatile("mov %0, r9" : "=rm"(tss_start));
-	asm volatile("mov %0, r10" : "=rm"(tss_end));
-	asm volatile("mov %0, r11" : "=rm"(tss_register));
-	asm volatile("mov %0, r12" : "=rm"(info));
-
+void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, multiboot_info_t *info) {
 	// TODO FIX THE SERIAL AT SOME POINT
 	serial_init();
-
-	idt_init();
-	irq_init();
-	// int a = 1 / 0;
 
 	fb_init();
 	fb_printf("Hello world!\n");
@@ -81,12 +57,17 @@ void kmain() {
 	tss_entry->base_mid = (tss_start >> 16) & 0xFF;
 	tss_entry->access = 0x89;
 	tss_entry->flags_and_limit = 0x40;
-	// tss_entry->flags_and_limit = (limit >> 16) & 0xF | (0 << 4);
+	tss_entry->flags_and_limit = (limit >> 16) & 0xF | (0 << 4);
 	tss_entry->base_high = (tss_start >> 24) & 0xFF;
 	tss_entry->base_highest = (tss_start >> 32) & 0xFFFFFFFF;
 	tss_entry->reserved = 0;
 
-	// asm volatile("ltr %0" :: "rm"(*tss_register));
-	asm volatile("mov rax, 0x18; ltr rax");
-	asm volatile("sti");
+	asm volatile("mov ax, 0x18; ltr ax");
+
+	idt_init();
+
+	asm volatile("xchg bx, bx; sti");
+
+	// for (int i = 0; i < 100; i++)
+	// 	fb_printf("OK %d\n", i);
 }
