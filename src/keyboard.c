@@ -1,9 +1,9 @@
 #include "keyboard.h"
-#include "irq.h"
+#include "interrupt.h"
 #include "io.h"
 #include "output.h"
 
-void keyboard_routine(struct Registers *regs) {
+void keyboard_routine(struct InterruptData *data) {
 	u8 scan = inb(0x60);
 	fb_printf("key press #%d\n", scan);
 }

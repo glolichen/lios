@@ -257,6 +257,71 @@ populate_pt_low_loop:
 	or eax, 1 << 31
 	mov cr0, eax
 
+	; remap PIC (maybe move this later...)
+	mov dx, 0x20
+	mov al, 0x11
+	out dx, al
+
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
+	mov dx, 0xA0
+	mov al, 0x11
+	out dx, al
+
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
+	mov dx, 0x21
+	mov al, 0x20
+	out dx, al
+
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
+	mov dx, 0xA1
+	mov al, 0x28
+	out dx, al
+
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
+	mov dx, 0x21
+	mov al, 0x04
+	out dx, al
+	
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
+	mov dx, 0xA1
+	mov al, 0x02
+	out dx, al
+
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
+	mov dx, 0x21
+	mov al, 0x01
+	out dx, al
+
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
+	mov dx, 0xA1
+	mov al, 0x01
+	out dx, al
+
+	mov dx, 0x80
+	mov al, 0
+	out dx, al
+
 	lgdt [no_offset(gdt_ptr)]
 	jmp 0x08:long_mode_start
 

@@ -1,8 +1,8 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
-#include "irq.h"
+#include "interrupt.h"
 
-void keyboard_routine(struct Registers *regs);
+void keyboard_routine(struct InterruptData *data);
 
 #endif

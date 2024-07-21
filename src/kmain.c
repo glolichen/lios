@@ -1,8 +1,6 @@
 #include "io.h"
 #include "const.h"
-// #include "gdt.h"
-#include "idt.h"
-#include "irq.h"
+#include "interrupt.h"
 // #include "pic.h"
 #include "serial.h"
 #include "multiboot.h"
@@ -61,12 +59,9 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, multiboot_
 	tss_entry->base_high = (tss_start >> 24) & 0xFF;
 	tss_entry->base_highest = (tss_start >> 32) & 0xFFFFFFFF;
 	tss_entry->reserved = 0;
+	asm volatile("ltr %d0" :: "r"(0x18));
 
-	asm volatile("mov ax, 0x18; ltr ax");
-
-	idt_init();
-
-	asm volatile("xchg bx, bx; sti");
+	interrupt_init();
 
 	// for (int i = 0; i < 100; i++)
 	// 	fb_printf("OK %d\n", i);
