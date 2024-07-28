@@ -5,5 +5,5 @@
 
 void keyboard_routine(struct InterruptData *data) {
 	u8 scan = inb(0x60);
-	fb_printf("key press #%d\n", scan);
+	fb_printf("key press #%u\n", scan);
 }

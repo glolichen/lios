@@ -2,6 +2,7 @@
 #include "output.h"
 #include "io.h"
 #include "keyboard.h"
+#include "page.h"
 #include "const.h"
 
 struct IDTEntry idt[256];
@@ -10,6 +11,16 @@ struct IDTPointer idt_ptr;
 void (*irq_routines[16])(struct InterruptData *) = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
+void (*exception_handlers[32])(struct InterruptData *) = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+void irq_set_routine(u8 irq_number, void (*routine)(struct InterruptData *)) {
+	irq_routines[irq_number] = routine;
+}
+void exception_set_handler(u8 exception, void (*handler)(struct InterruptData *)) {
+	irq_routines[exception] = handler;
+}
 
 void idt_set_entry(u8 index, u64 isr, u8 flags) { 
 	idt[index].isr_low = isr & 0xFFFF;
@@ -23,11 +34,14 @@ void idt_set_entry(u8 index, u64 isr, u8 flags) {
 __attribute__((noreturn))
 void handle_exception(struct InterruptData *data) {
 	fb_printf(
-		"Exception %x: %s, code %d\n",
+		"Exception 0x%x: %s, code %u\n",
 		data->interrupt_num,
 		EXCEPTIONS[data->interrupt_num],
 		data->error_code
 	);
+	void (*handler)(struct InterruptData *) = irq_routines[data->interrupt_num];
+	if (handler)
+		handler(data);
 	asm("cli; hlt");
 	while (1);
 }
@@ -37,9 +51,6 @@ void pic_acknowledge(u8 irq) {
 		outb(PICS_COMMAND, PIC_EOI);
 	outb(PICM_COMMAND, PIC_EOI);
 }
-void irq_set_routine(u8 irq_number, void (*routine)(struct InterruptData *)) {
-	irq_routines[irq_number] = routine;
-}
 void handle_interrupt(struct InterruptData *data) {
 	u32 irq_number = data->interrupt_num - 32;
 	void (*routine)(struct InterruptData *) = irq_routines[irq_number];
@@ -47,13 +58,6 @@ void handle_interrupt(struct InterruptData *data) {
 		routine(data);
 	pic_acknowledge(irq_number);
 }
-void irq_init() {
-	// disable all irqs except keypress
-	outb(0x21, 0xFD);
-	outb(0xA1, 0xFF);
-	irq_set_routine(1, keyboard_routine);
-}
-
 
 void interrupt_init() {
 	for (u16 i = 0; i < 256; i++)
@@ -109,10 +113,16 @@ void interrupt_init() {
 	idt_set_entry(46, (u64) irq14, 0x8E);
 	idt_set_entry(47, (u64) irq15, 0x8E);
 
-	irq_init();
+	// disable all irqs except keypress
+	outb(0x21, 0xFD);
+	outb(0xA1, 0xFF);
+	irq_set_routine(INT_KEYBOARD, keyboard_routine);
+	exception_set_handler(EXCEPT_PAGE_FAULT, page_fault_handler);
 
 	idt_ptr.size = sizeof(idt) - 1;
 	idt_ptr.offset = (u64) &idt;
 
-	asm volatile("lidt %0; sti" :: "g"(idt_ptr));
+	asm volatile("lidt %0; sti" :: "m"(idt_ptr));
+
+	serial_info("Interrupts enabled");
 }

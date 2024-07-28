@@ -6,30 +6,48 @@
 #include "serial.h"
 #include "output.h"
 
-const u32 U32_MAX_LENGTH_DEC = 10;
-const u32 POWERS_10[] = {
-	1,
-	10,
-	100,
-	1000,
-	10000,
-	100000,
-	1000000,
-	10000000,
-	100000000,
-	1000000000
+const u32 U64_MAX_LENGTH_DEC = 20;
+const u64 POWERS_10[] = {
+	1ULL,
+	10ULL,
+	100ULL,
+	1000ULL,
+	10000ULL,
+	100000ULL,
+	1000000ULL,
+	10000000ULL,
+	100000000ULL,
+	1000000000ULL,
+	10000000000ULL,
+	100000000000ULL,
+	1000000000000ULL,
+	10000000000000ULL,
+	100000000000000ULL,
+	1000000000000000ULL,
+	10000000000000000ULL,
+	100000000000000000ULL,
+	1000000000000000000ULL,
+	10000000000000000000ULL
 };
 
-const u32 U32_MAX_LENGTH_HEX = 8;
-const u32 POWERS_16[] = {
-	0x1,
-	0x10,
-	0x100,
-	0x1000,
-	0x10000,
-	0x100000,
-	0x1000000,
-	0x10000000
+const u32 U32_MAX_LENGTH_HEX = 16;
+const u64 POWERS_16[] = {
+	0x1ULL,
+	0x10ULL,
+	0x100ULL,
+	0x1000ULL,
+	0x10000ULL,
+	0x100000ULL,
+	0x1000000ULL,
+	0x10000000ULL,
+	0x100000000ULL,
+	0x1000000000ULL,
+	0x10000000000ULL,
+	0x100000000000ULL,
+	0x1000000000000ULL,
+	0x10000000000000ULL,
+	0x100000000000000ULL,
+	0x1000000000000000ULL
 };
 
 typedef enum {
@@ -121,17 +139,17 @@ u32 printf(Destination dest, const char *format, va_list *arg) {
 				putchar('%', dest);
 				length++;
 			}
-			else if (*(format + 1) == 'd') {
-				u32 num = va_arg(*arg, u32);
+			else if (*(format + 1) == 'u') {
+				u64 num = va_arg(*arg, u64);
 				if (num == 0) {
 					putchar('0', dest);
 					length++;
 				}
 				else {
 					bool hasPrinted = false;
-					for (int i = U32_MAX_LENGTH_DEC - 1; i >= 0; i--) {
-						u32 power = POWERS_10[i];
-						u32 divide = num / power;
+					for (i32 i = U64_MAX_LENGTH_DEC - 1; i >= 0; i--) {
+						u64 power = POWERS_10[i];
+						u64 divide = num / power;
 						if (divide == 0) {
 							if (hasPrinted) {
 								putchar('0', dest);
@@ -147,11 +165,7 @@ u32 printf(Destination dest, const char *format, va_list *arg) {
 				}
 			}
 			else if (*(format + 1) == 'x') {
-				u32 num = va_arg(*arg, u32);
-				
-				putchar('0', dest);
-				putchar('x', dest);
-				length += 2;
+				u64 num = va_arg(*arg, u64);
 
 				if (num == 0) {
 					putchar('0', dest);
@@ -159,9 +173,9 @@ u32 printf(Destination dest, const char *format, va_list *arg) {
 				}
 				else {
 					bool hasPrinted = false;
-					for (int i = U32_MAX_LENGTH_HEX - 1; i >= 0; i--) {
-						u32 power = POWERS_16[i];
-						u32 divide = num / power;
+					for (i32 i = U32_MAX_LENGTH_HEX - 1; i >= 0; i--) {
+						u64 power = POWERS_16[i];
+						u64 divide = num / power;
 						if (divide == 0) {
 							if (hasPrinted) {
 								putchar('0', dest);

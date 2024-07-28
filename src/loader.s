@@ -380,21 +380,15 @@ ist7:
 	resb 8
 privilege0_stack:
 	resb 0x1000
-privilege1_stack:
-	resb 0x1000
-privilege2_stack:
-	resb 0x1000
 	
 ; section .rodata
 
 section .data
-io_permission_bitmap:
-
 tss_start:
 	dd 0 ; reserved
 	dq no_offset(privilege0_stack)
-	dq no_offset(privilege1_stack)
-	dq no_offset(privilege2_stack)
+	dq 0
+	dq 0
 	dq 0 ; reserved
 	dq no_offset(ist1)
 	dq no_offset(ist2)

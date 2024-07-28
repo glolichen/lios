@@ -3,11 +3,11 @@
 
 u8 inb(u16 port) {
 	u8 val;
-	asm volatile("in %b0, %d1" : "=a"(val) : "d"(port));
+	asm volatile("in %b0, %w1" : "=a"(val) : "Nd"(port));
 	return val;
 }
 void outb(u16 port, u8 data) {
-	asm volatile("out %d0, %b1" :: "d"(port), "a"(data));
+	asm volatile("out %w0, %b1" :: "Nd"(port), "a"(data));
 }
 void io_wait() {
 	outb(0x80, 0);
