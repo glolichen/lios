@@ -1,37 +1,12 @@
-#include "io.h"
 #include "const.h"
 #include "interrupt.h"
+#include "page.h"
 #include "pmm.h"
 #include "serial.h"
 #include "multiboot2.h"
 #include "output.h"
-// #include "pmm.h"
-// #include "page.h"
 
-// extern u32 kernel_end;
-
-// void kmain(multiboot_info_t *info, u32 magic, u16 size) {
-// 	serial_init();
-
-// 	pmm_init(info, magic, (u32) &kernel_end);
-
-// 	gdt_init();
-// 	idt_init();
-// 	irq_init();
-
-//     asm("sti");
-// 	serial_info("Interrupts enabled");
-
-// 	fb_init();
-// 	fb_clear();
-
-// 	serial_info("Hello world!\n");
-
-// 	serial_info("%x\n", info);
-// 	serial_info("%u %u\n", magic, info->flags);
-// }
-
-extern u64 KERNEL_OFFSET, kernel_end;
+extern u64 kernel_end;
 
 struct __attribute__((packed)) GDTEntryTSS {
 	u16 limit;
@@ -44,7 +19,8 @@ struct __attribute__((packed)) GDTEntryTSS {
 	u32 reserved;
 };
 
-void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_addr) {
+void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_addr,
+			u64 pml4[512], u64 pdpt_low[512], u64 pdt_low[512], u64 pt_low[512]) {
 	serial_init();
 
 	fb_init();
@@ -63,8 +39,8 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	asm volatile("ltr %d0" :: "r"(0x18));
 	serial_info("TSS loaded");
 
-	serial_info("0x%x", tss_start);
-
+	serial_info("multiboot pointer: 0x%x", mboot_addr);
+	
 	interrupt_init();
 
 	/*  kernel.c - the C part of the kernel */
@@ -86,23 +62,24 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 
 	// FSF COPIED CODE START
 	u32 multiboot_size = *(unsigned *) mboot_addr;
-	serial_info("Announced mbi size 0x%x", multiboot_size);
+	serial_info("announced mbi size 0x%x", multiboot_size);
 
 	u64 mem_start_mbi = 0, mem_size_mbi = 0;
 
 	struct multiboot_tag *tag = (struct multiboot_tag *) (mboot_addr + 8);
+	fb_printf("0x%x\n", tag);
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
-		serial_info("Tag 0x%x, Size 0x%x", tag->type, tag->size);
+		serial_info("tag 0x%x, Size 0x%x", tag->type, tag->size);
 		switch (tag->type) {
 			case MULTIBOOT_TAG_TYPE_CMDLINE:
-				serial_info("Command line = %s", ((struct multiboot_tag_string *) tag)->string);
+				serial_info("command line = %s", ((struct multiboot_tag_string *) tag)->string);
 				break;
 			case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME:
-				serial_info("Boot loader name = %s", ((struct multiboot_tag_string *) tag)->string);
+				serial_info("boot loader name = %s", ((struct multiboot_tag_string *) tag)->string);
 				break;
 			case MULTIBOOT_TAG_TYPE_MODULE:
 				serial_info(
-					"Module at 0x%x-0x%x. Command line %s",
+					"module at 0x%x-0x%x. Command line %s",
 					((struct multiboot_tag_module *) tag)->mod_start,
 					((struct multiboot_tag_module *) tag)->mod_end,
 					((struct multiboot_tag_module *) tag)->cmdline
@@ -117,7 +94,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 				break;
 			case MULTIBOOT_TAG_TYPE_BOOTDEV:
 				serial_info(
-					"Boot device 0x%x, 0x%x, 0x%x",
+					"boot device 0x%x, 0x%x, 0x%x",
 					((struct multiboot_tag_bootdev *) tag)->biosdev,
 					((struct multiboot_tag_bootdev *) tag)->slice,
 					((struct multiboot_tag_bootdev *) tag)->part
@@ -128,12 +105,11 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 				multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
 				while((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
 					serial_info(
-						" base_addr = 0x%x%x, length = 0x%x%x, type = %s",
-						(u32) (mmap->addr >> 32),
-						(u32) (mmap->addr & 0xffffffff),
-						(u32) (mmap->len >> 32),
-						(u32) (mmap->len & 0xffffffff),
-						MULTIBOOT_ENTRY_TYPES[(unsigned) mmap->type]
+						" base_addr = 0x%x, length = 0x%x, type = %s, 0x%x",
+						mmap->addr,
+						mmap->len,
+						MULTIBOOT_ENTRY_TYPES[(unsigned) mmap->type],
+						mmap
 					);
 					if (mmap->addr != 0 && mmap->type == MBOOT_MEM_AVAILABLE) {
 						mem_start_mbi = mmap->addr;
@@ -192,45 +168,47 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 		tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 	}
 	tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
-	serial_info("Total mbi size 0x%x", (unsigned) tag - mboot_addr);
+	serial_info("total mbi size 0x%x", tag - mboot_addr);
 	// FSF COPIED CODE END
+	
+	// un-identity map first 2G
+	pml4[0] = 0;
+	pdpt_low[0] = 0;
+	for (u32 i = 0; i < 512; i++)
+		pdt_low[i] = 0, pt_low[i] = 0;
+	asm volatile("mov rax, cr3; mov cr3, rax" ::: "memory");
+	serial_info("removed 0-2GiB identity map");
 
 	// calculate when the kernel actually ends from info provided by linker
 	u64 mem_start = ((u64) &kernel_end) - 0xFFFFFFFF80000000;
 	// 4096 byte align
 	mem_start = (mem_start + 0x1000) & ~(0x1000 - 1);
-	u64 mem_size = mem_start_mbi + mem_size_mbi - mem_start;
+	u64 mem_end = mem_start_mbi + mem_size_mbi;
+	pmm_init(mem_start, mem_end);
 
-	serial_info("memory start: 0x%x", mem_start);
-	serial_info("memory size: 0x%x", mem_size);
+	pml4 = (u64 *) ((u64) pml4 + KERNEL_OFFSET);
+	page_init(pml4);
 
-	pmm_init(mem_start, mem_size);
+	u64 page_frame = pmm_alloc_kernel();
 
-	// miscellaneous pmm testing code
-	void *block1 = pmm_alloc();
-	void *block2 = pmm_alloc();
-	void *block3 = pmm_alloc();
-	void *block4 = pmm_alloc();
+	page_map(page_frame, 0x12838048);
+	//
+	// fb_printf("ok\n");
 
-	fb_printf(
-		"0x%x 0x%x 0x%x 0x%x\n",
-		block1, block2, block3, block4
-	);
-
-	pmm_free(block1);
-
-	void *block5 = pmm_alloc();
-	void *block6 = pmm_alloc();
-
-	fb_printf(
-		"0x%x 0x%x 0x%x 0x%x 0x%x\n",
-		block2, block3, block4, block5, block6
-	);
-
-	// u64 address = 0xDEADBEEF;
-	// u64 thing = *((u64 *) address);
-
-	// fb_printf("illegal thing: %d\n", thing);
-
-	// *((u64 *) address) = 500;
+	// u64 mem1 = pmm_alloc_kernel();
+	// pmm_free(mem1);
+	// u64 mem2 = pmm_alloc_kernel();
+	// u64 mem3 = pmm_alloc_kernel();
+	// pmm_free(mem2);
+	// pmm_free(mem3);
+      
+	// u64 last_mem;
+	// for (u64 i = 0;; i++) {
+	// 	if (i % 5 == 4)
+	// 		pmm_free(last_mem);
+		// u64 mem = pmm_alloc_user();
+	// 	if (i % 5 == 0)
+	// 		last_mem = mem;
+	// }
 }
+

@@ -12,6 +12,9 @@ typedef uint32_t u32;
 typedef int64_t i64;
 typedef uint64_t u64;
 
+#define PRINT_INFO_SERIAL 1
+#define KERNEL_OFFSET 0xFFFFFFFF80000000
+
 #define GET_SERIAL_DATA_PORT(base) (base)
 #define GET_SERIAL_FIFO_COMMAND_PORT(base) (base + 2)
 #define GET_SERIAL_LINE_COMMAND_PORT(base) (base + 3)
@@ -52,7 +55,7 @@ enum FBColor {
 #define SERIAL_COM1_BASE 0x3F8
 #define SERIAL_LINE_ENABLE_DLAB 0x80
 
-#define FB_ADDRESS 0xB8000
+#define FB_ADDRESS (KERNEL_OFFSET + 0xB8000)
 
 #define PICM 0x20
 #define PICS 0xA0
@@ -65,52 +68,45 @@ enum FBColor {
 extern const char *EXCEPTIONS[];
 
 extern const char *MULTIBOOT_ENTRY_TYPES[];
-#define PMM_BLOCK_SIZE 4096
 
-#define PAGE_TABLES_PER_DIRECTORY 1024
-#define PAGES_PER_TABLE 1024
-
-// no PSE for now
-#define PAGE_SIZE 4096
-
-enum PageDirectoryFlags {
-	PDF_PRESENT = 0x1,
-	PDF_WRITABLE = 0x2,
-	PDF_USER = 0x4,
-	PDF_WRITE_THROUGH = 0x8,
-	PDF_CACHE_DISABLE = 0x10,
-	PDF_ACCESSED = 0x20,
-	PDF_PAE_SET = 0x80,
+enum PML4E_PDPE_PDE_Flags {
+	PML4E_PDPE_PDE_PRESENT = 0x1,
+	PML4E_PDPE_PDE_WRITABLE = 0x2,
+	PML4E_PDPE_PDE_USER = 0x4,
+	PML4E_PDPE_PDE_WRITETHROUGH = 0x8,
+	PML4E_PDPE_PDE_CACHE_DISABLE = 0x10,
+	PML4E_PDPE_PDE_ACCESSED = 0x20,
 };
-enum PageTableFlags {
-	PTF_PRESENT = 0x1,
-	PTF_WRITABLE = 0x2,
-	PTF_USER = 0x4,
-	PTF_WRITE_THROUGH = 0x8,
-	PTF_CACHE_DISABLE = 0x10,
-	PTF_ACCESSED = 0x20,
-	PTF_DIRTY = 0x40,
-	PTF_PAT = 0x80,
-	PTF_GLOBAL = 0x100,
+enum PTE_Flags {
+	PTE_PRESENT = 0x1,
+	PTE_WRITABLE = 0x2,
+	PTE_USER = 0x4,
+	PTE_WRITETHROUGH = 0x8,
+	PTE_CACHE_DISABLE = 0x10,
+	PTE_ACCESSED = 0x20,
+	PTE_DIRTY = 0x40,
+	PTE_PAT = 0x80,
+	PTE_GLOBAL = 0x100,
 };
 
-// page directory table is an array of page directory entries
-// page directory entries point to page tables
-// page tables is an array of page table entries
-// page table entries point to pages (physical address (u32))
-typedef u32 PageDirectoryEntry;
-typedef u32 PageTableEntry;
-
+typedef u64 PML4E;
+typedef u64 PDPE;
+typedef u64 PDE;
+typedef u64 PTE;
 typedef struct {
-	PageDirectoryEntry table[1024];
-} PageDirectoryTable;
+	PML4E table[512];
+} PML4;
 typedef struct {
-	PageTableEntry table[1024];	
-} PageTable;
+	PDPE table[512];	
+} PDPT;
+typedef struct {
+	PDE table[512];
+} PDT;
+typedef struct {
+	PTE table[512];	
+} PT;
 
-typedef u32 PhysicalAddress;
-
-// #define KERNEL_START 0x00100000
+typedef u64 PhysicalAddress;
 
 // exceptions
 enum {
@@ -176,5 +172,6 @@ enum {
 	MBOOT_MEM_NVS,
 	MBOOT_MEM_BAD
 };
+
 
 #endif

@@ -277,7 +277,7 @@ populate_pt_low_loop:
 	mov dx, 0x21
 	mov al, 0x20
 	out dx, al
-
+ 
 	mov dx, 0x80
 	mov al, 0
 	out dx, al
@@ -333,11 +333,38 @@ long_mode_start:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
+	jmp higher_half_text
+  
+section .kernel_text
+higher_half_text:
+	mov rsp, stack_bottom
+	mov rbp, stack_bottom
+	; put the offset back into gdt_ptr before removing identity map
+	mov qword [gdt_ptr + 2], gdt_start
+	lgdt [gdt_ptr]
+;	push 0x08
+;	lea rax, [rel second_long_jump]
+;	push rax
+;	retf;q
+
+;second_long_jump:
+;	mov ax, 0x10
+;	mov ds, ax
+;	mov es, ax
+;	mov fs, ax
+;	mov gs, ax
+;	mov ss, ax
 	; move to registers for use in kmain
+	; https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI
 	mov rdi, gdt_tss
 	mov rsi, tss_start
 	mov rdx, tss_end
 	mov rcx, [mboot_struct_ptr]
+	mov r8, cr3
+	mov r9, pdpt_low
+	push pdt_low
+	push pt_low
+	xchg bx, bx
 	call kmain
 	jmp $
 
