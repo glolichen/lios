@@ -223,6 +223,9 @@ u32 fb_printf(const char *format, ...) {
 }
 
 u32 serial_debug(const char *format, ...) {
+	if (!PRINT_INFO_SERIAL)
+		return 0;
+	
 	print(SERIAL, "DEBUG: ", 7);
 
 	va_list arg;
@@ -235,6 +238,9 @@ u32 serial_debug(const char *format, ...) {
 	return length;
 }
 u32 serial_info(const char *format, ...) {
+	if (!PRINT_INFO_SERIAL)
+			return 0;
+
 	print(SERIAL, "INFO:  ", 7);
 
 	va_list arg;

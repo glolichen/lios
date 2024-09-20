@@ -1,7 +1,8 @@
 ENTRY(_start)
+
+KERNEL_OFFSET = 0xFFFFFFFF80000000;
+
 SECTIONS {
-	/* KERNEL_OFFSET = 0xC0000000; */
-	KERNEL_OFFSET = 0xFFFFFFFF80000000;
 	.mboot ALIGN(4K) : AT(ADDR(.mboot)) {
 		*(.mboot)
 	}
@@ -16,6 +17,7 @@ SECTIONS {
 
 	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_OFFSET) {
 		*(EXCLUDE_FILE(*src/loader.o) .text)
+		*(.kernel_text)
 	}
 
 	.rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_OFFSET) {
