@@ -5,6 +5,7 @@
 #include "serial.h"
 #include "multiboot2.h"
 #include "output.h"
+#include "vmm.h"
 
 extern u64 kernel_end;
 
@@ -184,29 +185,71 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	// 4096 byte align
 	mem_start = (mem_start + 0x1000) & ~(0x1000 - 1);
 	u64 mem_end = mem_start_mbi + mem_size_mbi;
-	pmm_init(mem_start, mem_end);
+	u64 free_virt_start = pmm_init(mem_start, mem_end);
 
 	pml4 = (u64 *) ((u64) pml4 + KERNEL_OFFSET);
 	page_init(pml4);
 
-	u64 page_frame = pmm_alloc_kernel();
+	vmm_init(free_virt_start);
 
-	page_map(page_frame, 0x12838048);
+	u64 *thing1 = (u64 *) vmm_alloc(3);
+	u64 *thing2 = (u64 *) vmm_alloc(2);
+	for (u32 i = 0; i < 10; i++)
+		thing1[i] = 1 << i;
+	// page unmap test, should result in page fault
+	// page_unmap((u64) thing1);
+	for (u32 i = 0; i < 8; i++)
+		thing1[i] = 80 * i;
+	for (u32 i = 0; i < 8; i++)
+		thing2[i] = 10 * i;
+
+	for (u32 i = 0; i < 10; i++)
+		fb_printf("%u ", thing1[i]);
+	fb_printf("\n");
+	for (u32 i = 0; i < 10; i++)
+		fb_printf("%u ", thing2[i]);
+	fb_printf("\n");
+
+	vmm_free(thing1);
+	// destroy header test
+	// *((u64 *) ((u64) thing2 - 8)) = 2000;
+	vmm_free(thing2);
+
+	u64 *thing3 = (u64 *) vmm_alloc(8);
+	vmm_free(thing3);
+
+	fb_printf("ok\n");
+
+
+	// page_map testing code
+	// u64 page_frame = pmm_alloc_kernel();
+	// asm("xchg bx, bx");
 	//
-	// fb_printf("ok\n");
+	// page_map(page_frame, page_frame);
+	// asm("xchg bx, bx");
+	// fb_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
+	// *((u64 *) page_frame) = 0xDEADBEEF;
+	//
+	// asm("xchg bx, bx");
+	// fb_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
+	//
+	// page_unmap(page_frame);
+	// asm("xchg bx, bx");
+	// fb_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
 
+	// physical allocation testing code
 	// u64 mem1 = pmm_alloc_kernel();
 	// pmm_free(mem1);
 	// u64 mem2 = pmm_alloc_kernel();
 	// u64 mem3 = pmm_alloc_kernel();
 	// pmm_free(mem2);
 	// pmm_free(mem3);
-      
+    // 
 	// u64 last_mem;
 	// for (u64 i = 0;; i++) {
 	// 	if (i % 5 == 4)
 	// 		pmm_free(last_mem);
-		// u64 mem = pmm_alloc_user();
+	// 	u64 mem = pmm_alloc_user();
 	// 	if (i % 5 == 0)
 	// 		last_mem = mem;
 	// }

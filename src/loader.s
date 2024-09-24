@@ -364,7 +364,6 @@ higher_half_text:
 	mov r9, pdpt_low
 	push pdt_low
 	push pt_low
-	xchg bx, bx
 	call kmain
 	jmp $
 

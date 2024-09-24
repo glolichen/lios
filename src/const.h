@@ -173,5 +173,7 @@ enum {
 	MBOOT_MEM_BAD
 };
 
+#define PAGE_SIZE 4096
+#define VMM_MAGIC 0x420F1337
 
 #endif

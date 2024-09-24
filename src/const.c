@@ -39,7 +39,7 @@ const char *MULTIBOOT_ENTRY_TYPES[] = {
 	"???",
 	"Available",
 	"Reserved",
-	"ACPI reclaimable",
+	"ACPI Reclaimable",
 	"NVS",
 	"Bad"
 };
