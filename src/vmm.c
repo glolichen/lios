@@ -45,7 +45,8 @@ void vmm_init(u64 free_virt_start) {
 		cur->start = 0;
 		cur->size = 0;
 	}
-	cur->next = 0;
+	tail = cur;
+	tail->next = 0;
 
 	serial_info("vmm: created vmm list nodes, starting 0x%x, ending 0x%x", head, cur);
 
@@ -64,6 +65,30 @@ void vmm_init(u64 free_virt_start) {
 	// }
 }
 
+void remove_node(struct VMMFreeNode *node) {
+	// set start and size to zero, indicating empty node
+	node->start = 0;
+	node->size = 0;
+
+	// in the list, skip current node
+	// next node points to previous node
+	if (node->next)
+		node->next->prev = node->prev;
+	
+	// previous node points to next node
+	if (node->prev)
+		node->prev->next = node->next;
+	// node is head
+	else
+		head = node->next;
+
+	// move to tail
+	node->next = 0;
+	node->prev = tail;
+	tail->next = node;
+	tail = node;
+}
+
 // TODO: allocate and map page frames!!!
 void *vmm_alloc(u32 pages) {
 	// make space for header here
@@ -74,16 +99,8 @@ void *vmm_alloc(u32 pages) {
 		u64 start = cur->start, size = cur->size;
 		if (size >= request_size) {
 			// exact fit -- delete node by adding to the end
-			if (size == request_size) {
-				cur->start = 0;
-				cur->size = 0;
-				cur->next->prev = cur->prev;
-				cur->prev->next = cur->next;
-				cur->next = 0;
-				cur->prev = tail;
-				tail->next = cur;
-				tail = cur;
-			}
+			if (size == request_size)
+				remove_node(cur);
 			// inexact fit -- shrink node
 			else {
 				cur->start += request_size;
@@ -116,13 +133,16 @@ void *vmm_alloc(u32 pages) {
 
 void vmm_free(void *mem) {
 	struct VMMMemHeader *header = ((struct VMMMemHeader *) mem - 1);
-	serial_info("vmm: free virt block at 0x%x, size 0x%x", mem, header->size);
+	// save the # of pages before page is freed
+	u32 pages = header->size;
+	u64 block_start = (u64) header, block_end = (u64) mem + pages * PAGE_SIZE;
+	serial_info("vmm: free virt block at 0x%x, %u pages", mem, pages);
 
 	if (header->magic != VMM_MAGIC)
 		panic("Incorrect magic number! (VMM)");
 
 	// remap virtual address to normal position, free page frame
-	for (u32 i = 0; i < header->size; i++) {
+	for (u32 i = 0; i < pages; i++) {
 		u64 virt = (u64) mem + i * PAGE_SIZE;
 		PhysicalAddress page_frame = page_virt_to_phys_addr(virt);
 		pmm_free(page_frame);
@@ -137,15 +157,84 @@ void vmm_free(void *mem) {
 	bool found_merge = false;
 	while (cur != 0) {
 		u64 start = cur->start, size = cur->size;
+		// expand existing block to the right
+		if (block_start == start + size) {
+			cur->size += (block_end - block_start);
+			block_start = start;
+			found_merge = true;
+			break;
+		}
+		// expand existing block to the left
+		if (block_end == start) {
+			cur->start -= (block_end - block_start);
+			cur->size += (block_end - block_start);
+			block_end = cur->start + cur->size;
+			found_merge = true;
+			break;
+		}
 		cur = cur->next;
 	}
 
-	// not found then add node
+	// not found then add node by moving (hopefully empty) tail node to head
 	if (!found_merge) {
-		
+		if (tail->start && tail->size)
+			panic("Not yet implemented D: (VMM)");
+
+		// make it no longer tail, make previous node tail
+		cur = tail;
+		tail = tail->prev;
+		tail->next = 0;
+
+		// previous = 0 means head, make it point to current head
+		cur->prev = 0;
+		cur->next = head;
+		// head is memory but subtract header
+		cur->start = (u64) mem - sizeof(struct VMMMemHeader);
+		// size is based on number of blocks but add header size
+		cur->size = pages * PAGE_SIZE + sizeof(struct VMMMemHeader);
+		// make before of current head point to current node
+		head->prev = cur;
+		// move current node to head
+		head = cur;
 		return;
 	}	
 
+	struct VMMFreeNode *merged = cur;
+
 	// if found then check again to see if can merge again
+	// need to re-iterate through list to find further merges
+	cur = head;
+	while (cur != 0) {
+		u64 start = cur->start, size = cur->size;
+		if (block_start == start + size) {
+			cur->size += (block_end - block_start);
+			remove_node(merged);
+			break;
+		}
+		if (block_end == start) {
+			cur->start -= (block_end - block_start);
+			cur->size += (block_end - block_start);
+			remove_node(merged);
+			break;
+		}
+		cur = cur->next;
+	}
+}
+
+void vmm_log_status() {
+	serial_debug("vmm: printing status");
+	u32 empty_node_count = 0, node_count = 0;
+	struct VMMFreeNode *cur = head;
+	while (cur != 0) {
+		u64 start = cur->start, size = cur->size;
+		if (start && size)
+			serial_debug("vmm: node 0x%x, addr 0x%x, size 0x%x", (u64) cur, start, size);
+		else
+			empty_node_count++;
+		node_count++;
+		cur = cur->next;
+	}
+
+	serial_debug("vmm: %u nodes, %u empty", node_count, empty_node_count);
 }
 

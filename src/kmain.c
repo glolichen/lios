@@ -191,35 +191,44 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	page_init(pml4);
 
 	vmm_init(free_virt_start);
+	vmm_log_status();
 
 	u64 *thing1 = (u64 *) vmm_alloc(3);
 	u64 *thing2 = (u64 *) vmm_alloc(2);
-	for (u32 i = 0; i < 10; i++)
-		thing1[i] = 1 << i;
+	vmm_log_status();
+	// for (u32 i = 0; i < 10; i++)
+	// 	thing1[i] = 1 << i;
 	// page unmap test, should result in page fault
 	// page_unmap((u64) thing1);
-	for (u32 i = 0; i < 8; i++)
-		thing1[i] = 80 * i;
-	for (u32 i = 0; i < 8; i++)
-		thing2[i] = 10 * i;
-
-	for (u32 i = 0; i < 10; i++)
-		fb_printf("%u ", thing1[i]);
-	fb_printf("\n");
-	for (u32 i = 0; i < 10; i++)
-		fb_printf("%u ", thing2[i]);
-	fb_printf("\n");
+	// for (u32 i = 0; i < 8; i++)
+	// 	thing1[i] = 80 * i;
+	// for (u32 i = 0; i < 8; i++)
+	// 	thing2[i] = 10 * i;
+	//
+	// for (u32 i = 0; i < 10; i++)
+	// 	fb_printf("%u ", thing1[i]);
+	// fb_printf("\n");
+	// for (u32 i = 0; i < 10; i++)
+	// 	fb_printf("%u ", thing2[i]);
+	// fb_printf("\n");
 
 	vmm_free(thing1);
+	vmm_log_status();
 	// destroy header test
 	// *((u64 *) ((u64) thing2 - 8)) = 2000;
 	vmm_free(thing2);
 
-	u64 *thing3 = (u64 *) vmm_alloc(8);
-	vmm_free(thing3);
+	vmm_log_status();
+
+	// u64 *thing3 = (u64 *) vmm_alloc(8);
+	u64 *thing4 = (u64 *) vmm_alloc(1);
+	// vmm_free(thing3);
+	vmm_log_status();
+	vmm_free(thing4);
+
+	vmm_log_status();
 
 	fb_printf("ok\n");
-
 
 	// page_map testing code
 	// u64 page_frame = pmm_alloc_kernel();
