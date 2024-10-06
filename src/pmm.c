@@ -6,19 +6,19 @@
 
 #define TWO_GB 2147483648
 
-struct StackNode {
-	struct StackNode *next;
+struct PhysFreeListNode {
+	struct PhysFreeListNode *next;
 	u64 addr;
 };
 
 u64 stack_start, free_start;
-struct StackNode *kernel = 0, *user = 0;
+struct PhysFreeListNode *kernel = 0, *user = 0;
 
 // returns start of free virtual memory
 u64 pmm_init(u64 start, u64 end) {
 	// upper bound for stack space needed
 	u64 stack_space;
-	struct StackNode *current;
+	struct PhysFreeListNode *current;
 
 	bool more_than_2;
 	if ((more_than_2 = (end > TWO_GB)))
@@ -31,7 +31,7 @@ u64 pmm_init(u64 start, u64 end) {
 	stack_start = start;
 
 	u64 addr;
-	kernel = (struct StackNode *) (start + KERNEL_OFFSET);
+	kernel = (struct PhysFreeListNode *) (start + KERNEL_OFFSET);
 	current = kernel;
 	for (addr = free_start;; addr += PAGE_SIZE) {
 		current->addr = addr;
@@ -57,7 +57,7 @@ u64 pmm_init(u64 start, u64 end) {
 	// 4KiB align downwards
 	end &= ~(PAGE_SIZE - 1);
 	addr += PAGE_SIZE;
-	current += sizeof(struct StackNode *);
+	current += sizeof(struct PhysFreeListNode *);
 	user = current;
 	for (;; addr += PAGE_SIZE) {
 		current->addr = addr;
@@ -65,7 +65,7 @@ u64 pmm_init(u64 start, u64 end) {
 			current->next = 0;
 			break;
 		}
-		current->next = current + sizeof(struct StackNode);
+		current->next = current + sizeof(struct PhysFreeListNode);
 		current = current->next;
 	}
 
@@ -94,20 +94,20 @@ PhysicalAddress pmm_alloc_user() {
 }
 
 void pmm_free(PhysicalAddress mem) {
-	u64 node_addr = stack_start + sizeof(struct StackNode) * (mem - free_start) / 4096 + KERNEL_OFFSET;
+	u64 node_addr = stack_start + sizeof(struct PhysFreeListNode) * (mem - free_start) / PAGE_SIZE + KERNEL_OFFSET;
 	if (mem >= TWO_GB) {
 		// freeing user memory
 		serial_info("pmm: free node 0x%x, addr 0x%x (user)", node_addr, mem);
-		struct StackNode *old_user = user;
-		user = (struct StackNode *) node_addr;
+		struct PhysFreeListNode *old_user = user;
+		user = (struct PhysFreeListNode *) node_addr;
 		user->next = old_user;
 		user->addr = mem;
 		return;
 	}
 	// freeing kernel memory
 	serial_info("pmm: free node 0x%x, addr 0x%x (kernel)", node_addr, mem);
-	struct StackNode *old_kernel = kernel;
-	kernel = (struct StackNode *) node_addr;
+	struct PhysFreeListNode *old_kernel = kernel;
+	kernel = (struct PhysFreeListNode *) node_addr;
 	kernel->next = old_kernel;
 	kernel->addr = mem;
 }

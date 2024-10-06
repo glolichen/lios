@@ -69,6 +69,9 @@ extern const char *EXCEPTIONS[];
 
 extern const char *MULTIBOOT_ENTRY_TYPES[];
 
+extern const char *KEYCODES[];
+extern const u32 MAX_KEYCODE;
+
 enum PML4E_PDPE_PDE_Flags {
 	PML4E_PDPE_PDE_PRESENT = 0x1,
 	PML4E_PDPE_PDE_WRITABLE = 0x2,

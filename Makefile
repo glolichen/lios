@@ -1,5 +1,5 @@
 # OBJECTS = src/loader.o src/const.o src/gdts.o src/gdt.o src/pic.o src/idts.o src/idt.o src/isrs.o src/isr.o src/irqs.o src/irq.o src/io.o src/serial.o src/output.o src/kmain.o src/keyboard.o src/pmm.o src/panic.o src/page.o
-OBJECTS = src/loader.o src/kmain.o src/const.o src/output.o src/io.o src/serial.o src/interrupt.o src/interrupts.o src/keyboard.o src/pmm.o src/page.o src/panic.o src/kmalloc.o src/vmm.o
+OBJECTS = src/loader.o src/kmain.o src/const.o src/output.o src/io.o src/serial.o src/interrupt.o src/interrupts.o src/keyboard.o src/pmm.o src/page.o src/panic.o src/heap.o src/vmm.o
 
 ASM = nasm
 ASM_FLAGS = -f elf64

@@ -1,4 +1,5 @@
 #include <stdbool.h>
+
 #include "page.h"
 #include "output.h"
 #include "const.h"
@@ -135,7 +136,7 @@ PhysicalAddress page_virt_to_phys_addr(u64 virt) {
 	return pte_get_addr(&pt_addr->table[pte]);
 }
 
-bool page_map(u64 virt, PhysicalAddress phys) {
+void page_map(u64 virt, PhysicalAddress phys) {
 	u64 pml4e = virt_addr_get_pml4e(virt);
 	u64 pdpe = virt_addr_get_pdpe(virt);
 	u64 pde = virt_addr_get_pde(virt);
@@ -177,19 +178,16 @@ bool page_map(u64 virt, PhysicalAddress phys) {
 	pte_set_addr(&pt_addr->table[pte], phys);
 	pte_set_flag(&pt_addr->table[pte], PTE_PRESENT);
 	pte_set_flag(&pt_addr->table[pte], PTE_WRITABLE);
-
-	return true;
 }
 
 
-// TODO: FREE unused tables/structures!
-bool page_unmap(u64 virt) {
+void page_unmap(u64 virt) {
 	u64 pml4e = virt_addr_get_pml4e(virt);
 	u64 pdpe = virt_addr_get_pdpe(virt);
 	u64 pde = virt_addr_get_pde(virt);
 	u64 pte = virt_addr_get_pte(virt);
 
-	bool used_otherwise = false;
+	bool pdpt_used = false, pdt_used = false, pt_used = false;
 
 	PDPT *pdpt_addr = pml4e_get_addr(&pml4_addr->table[pml4e]);
 	pdpt_addr = (PDPT *) ((u64) pdpt_addr + KERNEL_OFFSET);
@@ -199,23 +197,32 @@ bool page_unmap(u64 virt) {
 
 	PT *pt_addr = pde_get_addr(&pdt_addr->table[pde]);
 	pt_addr = (PT *) ((u64) pt_addr + KERNEL_OFFSET);
+
+	for (u32 i = 0; i < 512; i++) {
+		if (pdpe_query_flag(&pdpt_addr->table[i], PML4E_PDPE_PDE_PRESENT) && i != pdpe)
+			pdpt_used = true;
+		if (pde_query_flag(&pdt_addr->table[i], PML4E_PDPE_PDE_PRESENT) && i != pde)
+			pdt_used = true;
+		if (pte_query_flag(&pt_addr->table[i], PTE_PRESENT) && i != pte)
+			pt_used = true;
+	}
+
+	serial_info("page: unmap: PDPT used %u, PDT used %u, PT used %u", pdpt_used, pdt_used, pt_used);
+	if (!pdpt_used) {
+		serial_info("page: unmap: free PDPT at virt 0x%x", pdpt_addr);
+		pmm_free(page_virt_to_phys_addr((u64) pdpt_addr));
+	}
+	if (!pdt_used) {
+		serial_info("page: unmap: free PDT at virt 0x%x", pdt_addr);
+		pmm_free(page_virt_to_phys_addr((u64) pdt_addr));
+	}
+	if (!pt_used) {
+		serial_info("page: unmap: free PT at virt 0x%x", pt_addr);
+		pmm_free(page_virt_to_phys_addr((u64) pt_addr));
+	}
+
 	pt_addr->table[pte] = 0;
-
-	// for (u32 i = 0; i < 512; i++) {
-	// 	if (pte_query_flag(&pt_addr->table[i], PTE_PRESENT)) {
-	// 		used_otherwise = true;
-	// 		break;
-	// 	}
-	// }
-	// if (!used_otherwise) {
-	// 	serial_info("page: free unused pdt 0x%x", pdt_addr);
-	// 	// need to calculate physical address, then free that part
-	// 	pmm_free((u64) pdt_addr);
-	// }
-
 	invplg(virt);
-
-	return true;
 }
 
 

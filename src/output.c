@@ -222,6 +222,57 @@ u32 fb_printf(const char *format, ...) {
 	return length;
 }
 
+u32 serial_debug_no_line(const char *format, ...) {
+	if (!PRINT_INFO_SERIAL)
+		return 0;
+	
+	print(SERIAL, "DEBUG: ", 7);
+
+	va_list arg;
+	va_start(arg, format);
+
+	u32 length = printf(SERIAL, format, &arg);
+	va_end(arg);
+
+	return length;
+}
+u32 serial_info_no_line(const char *format, ...) {
+	if (!PRINT_INFO_SERIAL)
+			return 0;
+
+	print(SERIAL, "INFO:  ", 7);
+
+	va_list arg;
+	va_start(arg, format);
+
+	u32 length = printf(SERIAL, format, &arg);
+	va_end(arg);
+
+	return length;
+}
+u32 serial_warn_no_line(const char *format, ...) {
+	print(SERIAL, "WARN:  ", 7);
+
+	va_list arg;
+	va_start(arg, format);
+
+	u32 length = printf(SERIAL, format, &arg);
+	va_end(arg);
+
+	return length;
+}
+u32 serial_error_no_line(const char *format, ...) {
+	print(SERIAL, "ERROR: ", 7);
+
+	va_list arg;
+	va_start(arg, format);
+
+	u32 length = printf(SERIAL, format, &arg);
+	va_end(arg);
+
+	return length;
+}
+
 u32 serial_debug(const char *format, ...) {
 	if (!PRINT_INFO_SERIAL)
 		return 0;
@@ -276,3 +327,4 @@ u32 serial_error(const char *format, ...) {
 	putchar('\n', SERIAL);
 	return length;
 }
+

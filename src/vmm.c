@@ -11,32 +11,32 @@
 // but now we just have a first fit flat list structure
 
 // node in linked list that stores free blocks
-struct VMMFreeNode {
-	struct VMMFreeNode *prev, *next; // prev and next node
+struct VirtFreeListNode {
+	struct VirtFreeListNode *prev, *next; // prev and next node
 	u64 start; // start of current free virtual address block
 	u64 size; // size of current block
 };
-struct VMMMemHeader {
+struct MemBlockHeader {
 	u32 size; // number of (4KiB) pages
 	u32 magic; // magic number for checking
 };
 
-struct VMMFreeNode *head, *tail;
+struct VirtFreeListNode *vmm_head = 0, *vmm_tail = 0;
 
 void vmm_init(u64 free_virt_start) {
 	u64 page_frame = pmm_alloc_kernel();
 	page_unmap(free_virt_start);
 	page_map(free_virt_start, page_frame);
-	head = (struct VMMFreeNode *) free_virt_start;
-	head->prev = 0;
-	head->start = free_virt_start + PAGE_SIZE;
-	head->size = 0xFFFFFFFFFFFFFFFF - head->start;
+	vmm_head = (struct VirtFreeListNode *) free_virt_start;
+	vmm_head->prev = 0;
+	vmm_head->start = free_virt_start + PAGE_SIZE;
+	vmm_head->size = 0xFFFFFFFFFFFFFFFF - vmm_head->start;
 
 	// sizeof node is 32 bytes
 	// 4096/32 = 128
 	// in total will have 128 nodes, already created 1
 	// need to move forward 127 times
-	struct VMMFreeNode *cur = head;
+	struct VirtFreeListNode *cur = vmm_head;
 	for (u32 i = 1; i < 128; i++) {
 		// pointer arithemetic -- will increment by 32 bytes
 		cur->next = cur + 1;
@@ -45,13 +45,13 @@ void vmm_init(u64 free_virt_start) {
 		cur->start = 0;
 		cur->size = 0;
 	}
-	tail = cur;
-	tail->next = 0;
+	vmm_tail = cur;
+	vmm_tail->next = 0;
 
-	serial_info("vmm: created vmm list nodes, starting 0x%x, ending 0x%x", head, cur);
+	serial_info("vmm: created vmm list nodes, starting 0x%x, ending 0x%x", vmm_head, cur);
 
 	// check linked list
-	// struct VMMFreeNode *test_cur = head;
+	// struct FreeListNode *test_cur = head;
 	// while (true) {
 	// 	serial_debug("FREE NODE");
 	// 	serial_debug("    addr:  0x%x", test_cur);
@@ -65,7 +65,7 @@ void vmm_init(u64 free_virt_start) {
 	// }
 }
 
-void remove_node(struct VMMFreeNode *node) {
+void remove_node(struct VirtFreeListNode *node) {
 	// set start and size to zero, indicating empty node
 	node->start = 0;
 	node->size = 0;
@@ -74,26 +74,31 @@ void remove_node(struct VMMFreeNode *node) {
 	// next node points to previous node
 	if (node->next)
 		node->next->prev = node->prev;
+	// node is tail
+	// TODO: think of what to do here
+	else {
+
+	}
 	
 	// previous node points to next node
 	if (node->prev)
 		node->prev->next = node->next;
 	// node is head
 	else
-		head = node->next;
+		vmm_head = node->next;
 
 	// move to tail
 	node->next = 0;
-	node->prev = tail;
-	tail->next = node;
-	tail = node;
+	node->prev = vmm_tail;
+	vmm_tail->next = node;
+	vmm_tail = node;
 }
 
 // TODO: allocate and map page frames!!!
 void *vmm_alloc(u32 pages) {
 	// make space for header here
-	u64 request_size = pages * PAGE_SIZE + sizeof(struct VMMMemHeader);
-	struct VMMFreeNode *cur = head;
+	u64 request_size = pages * PAGE_SIZE + sizeof(struct MemBlockHeader);
+	struct VirtFreeListNode *cur = vmm_head;
 	// after the last node cur moves to 0
 	while (cur != 0) {
 		u64 start = cur->start, size = cur->size;
@@ -110,17 +115,17 @@ void *vmm_alloc(u32 pages) {
 			// unmap virtual address, allocate page frame, map to new page frame
 			serial_info("vmm: request physical page frames");
 			for (u32 i = 0; i < pages; i++) {
-				u64 virt = start + sizeof(struct VMMMemHeader) + i * PAGE_SIZE;
+				u64 virt = start + sizeof(struct MemBlockHeader) + i * PAGE_SIZE;
 				PhysicalAddress page_frame = pmm_alloc_kernel();
 				page_unmap(virt);
 				page_map(virt, page_frame);
 			}
 
-			((struct VMMMemHeader *) start)->magic = VMM_MAGIC;
-			((struct VMMMemHeader *) start)->size = pages;
+			((struct MemBlockHeader *) start)->magic = VMM_MAGIC;
+			((struct MemBlockHeader *) start)->size = pages;
 
 			serial_info("vmm: allocate %u pages with header at 0x%x", pages, start);
-			return (void *) (start + sizeof(struct VMMMemHeader));
+			return (void *) (start + sizeof(struct MemBlockHeader));
 		}
 		
 		// serial_info("VMM NODE start 0x%x size 0x%x", start, size);
@@ -132,7 +137,7 @@ void *vmm_alloc(u32 pages) {
 }
 
 void vmm_free(void *mem) {
-	struct VMMMemHeader *header = ((struct VMMMemHeader *) mem - 1);
+	struct MemBlockHeader *header = ((struct MemBlockHeader *) mem - 1);
 	// save the # of pages before page is freed
 	u32 pages = header->size;
 	u64 block_start = (u64) header, block_end = (u64) mem + pages * PAGE_SIZE;
@@ -153,7 +158,7 @@ void vmm_free(void *mem) {
 	// add virtual addresses back to linked list for future use
 	
 	// find node to merge current block with
-	struct VMMFreeNode *cur = head;
+	struct VirtFreeListNode *cur = vmm_head;
 	bool found_merge = false;
 	while (cur != 0) {
 		u64 start = cur->start, size = cur->size;
@@ -177,33 +182,33 @@ void vmm_free(void *mem) {
 
 	// not found then add node by moving (hopefully empty) tail node to head
 	if (!found_merge) {
-		if (tail->start && tail->size)
+		if (vmm_tail->start && vmm_tail->size)
 			panic("Not yet implemented D: (VMM)");
 
 		// make it no longer tail, make previous node tail
-		cur = tail;
-		tail = tail->prev;
-		tail->next = 0;
+		cur = vmm_tail;
+		vmm_tail = vmm_tail->prev;
+		vmm_tail->next = 0;
 
 		// previous = 0 means head, make it point to current head
 		cur->prev = 0;
-		cur->next = head;
+		cur->next = vmm_head;
 		// head is memory but subtract header
-		cur->start = (u64) mem - sizeof(struct VMMMemHeader);
+		cur->start = (u64) mem - sizeof(struct MemBlockHeader);
 		// size is based on number of blocks but add header size
-		cur->size = pages * PAGE_SIZE + sizeof(struct VMMMemHeader);
+		cur->size = pages * PAGE_SIZE + sizeof(struct MemBlockHeader);
 		// make before of current head point to current node
-		head->prev = cur;
+		vmm_head->prev = cur;
 		// move current node to head
-		head = cur;
+		vmm_head = cur;
 		return;
 	}	
 
-	struct VMMFreeNode *merged = cur;
+	struct VirtFreeListNode *merged = cur;
 
 	// if found then check again to see if can merge again
 	// need to re-iterate through list to find further merges
-	cur = head;
+	cur = vmm_head;
 	while (cur != 0) {
 		u64 start = cur->start, size = cur->size;
 		if (block_start == start + size) {
@@ -224,7 +229,7 @@ void vmm_free(void *mem) {
 void vmm_log_status() {
 	serial_debug("vmm: printing status");
 	u32 empty_node_count = 0, node_count = 0;
-	struct VMMFreeNode *cur = head;
+	struct VirtFreeListNode *cur = vmm_head;
 	while (cur != 0) {
 		u64 start = cur->start, size = cur->size;
 		if (start && size)
