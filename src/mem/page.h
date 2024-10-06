@@ -1,8 +1,8 @@
 #ifndef PAGE_H
 #define PAGE_H
 
-#include "const.h"
-#include "interrupt.h"
+#include "../const.h"
+#include "../interrupt.h"
 
 void page_init(u64 *pml4);
 void page_fault_handler(struct InterruptData *data);

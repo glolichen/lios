@@ -1,8 +1,7 @@
 #ifndef PMM_H
 #define PMM_H
 
-#include <stdbool.h>
-#include "const.h"
+#include "../const.h"
 
 u64 pmm_init(u64 start, u64 end);
 PhysicalAddress pmm_alloc_kernel();

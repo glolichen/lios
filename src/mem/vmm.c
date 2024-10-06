@@ -1,10 +1,10 @@
+#include <stdbool.h>
 #include "vmm.h"
-#include "output.h"
 #include "page.h"
 #include "pmm.h"
-#include "const.h"
-#include "panic.h"
-#include <stdbool.h>
+#include "../const.h"
+#include "../panic.h"
+#include "../io/output.h"
 
 // NOTE: yeah it's really bad
 // eventually (i.e. in 3 years) I will switch to AVL trees

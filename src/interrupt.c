@@ -1,9 +1,9 @@
 #include "interrupt.h"
-#include "output.h"
-#include "io.h"
-#include "keyboard.h"
-#include "page.h"
 #include "const.h"
+#include "io/keyboard.h"
+#include "io/output.h"
+#include "io/io.h"
+#include "mem/page.h"
 
 struct IDTEntry idt[256];
 struct IDTPointer idt_ptr;

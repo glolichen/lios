@@ -2,9 +2,9 @@
 #include <stdbool.h>
 
 #include "io.h"
-#include "const.h"
 #include "serial.h"
 #include "output.h"
+#include "../const.h"
 
 const u32 U64_MAX_LENGTH_DEC = 20;
 const u64 POWERS_10[] = {

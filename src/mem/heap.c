@@ -1,7 +1,7 @@
 #include "heap.h"
-#include "const.h"
 #include "vmm.h"
-#include "output.h"
+#include "../io/output.h"
+#include "../const.h"
 
 // sort of based on https://wiki.osdev.org/User:Pancakes/BitmapHeapImplementation
 // I thought of this system after viewing their interactive website for a bit,
@@ -18,7 +18,7 @@ struct HeapBitmapNode {
 };
 
 // I literally cannot believe I have to do this
-// floating point numbers are not allowed... so will need another way to found
+// floating point numbers are not allowed... so will need another way to divide
 u32 absolute(i32 num) {
 	return num > 0 ? num : -num;
 }

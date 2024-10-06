@@ -1,8 +1,8 @@
 #include <stdbool.h>
 #include "pmm.h"
-#include "output.h"
-#include "const.h"
-#include "panic.h"
+#include "../io/output.h"
+#include "../const.h"
+#include "../panic.h"
 
 #define TWO_GB 2147483648
 

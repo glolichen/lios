@@ -1,7 +1,7 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-#include "const.h"
+#include "../const.h"
 
 void heap_init();
 void *kmalloc(u64 size);

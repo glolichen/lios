@@ -1,12 +1,14 @@
 #include "const.h"
-#include "heap.h"
 #include "interrupt.h"
-#include "page.h"
-#include "pmm.h"
-#include "serial.h"
 #include "multiboot2.h"
-#include "output.h"
-#include "vmm.h"
+
+#include "io/serial.h"
+#include "io/output.h"
+
+#include "mem/vmm.h"
+#include "mem/pmm.h"
+#include "mem/heap.h"
+#include "mem/page.h"
 
 extern u64 kernel_end;
 

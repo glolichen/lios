@@ -2,7 +2,7 @@
 #define OUTPUT_H
 
 #include <stdarg.h>
-#include "const.h"
+#include "../const.h"
 
 void fb_init();
 void fb_putchar(char c);

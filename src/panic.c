@@ -1,5 +1,5 @@
-#include "output.h"
 #include "panic.h"
+#include "io/output.h"
 
 __attribute__((noreturn))
 void panic(char *msg) {

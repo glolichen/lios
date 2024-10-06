@@ -1,10 +1,10 @@
 #include <stdbool.h>
 
 #include "page.h"
-#include "output.h"
-#include "const.h"
-#include "interrupt.h"
 #include "pmm.h"
+#include "../io/output.h"
+#include "../const.h"
+#include "../interrupt.h"
 
 PML4 *pml4_addr;
 
