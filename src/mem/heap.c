@@ -23,6 +23,9 @@ struct HeapBitmapNode {
 	// split into bitmap and data section
 	u64 mem[];
 };
+struct HeapBlockHeader {
+	u64 size;
+};
 
 // I literally cannot believe I have to do this
 // floating point numbers are not allowed... so will need another way to divide
@@ -132,8 +135,13 @@ void unmark_bitmap(struct HeapBitmapNode *node, u64 start, u64 bits) {
 }
 
 void *kmalloc(u64 size) {
+	// need a header to store how much to free (I think malloc does this?)
+	u64 real_size = size;
+	size += sizeof(struct HeapBlockHeader);
+
 	u64 sections_needed = ceil_u64_div(size, SECTION_SIZE);
-	serial_info("heap: requested %u bytes = %u sections", size, sections_needed);
+	serial_info("heap: requested %u bytes = %u sections (%u bytes w/o header)",
+			 size, sections_needed, real_size);
 	
 	struct HeapBitmapNode *cur = heap_head;
 	while (cur != 0) {
@@ -153,8 +161,14 @@ void *kmalloc(u64 size) {
 
 				if (sections_found == sections_needed) {
 					mark_bitmap(cur, block_start, sections_needed);
+
 					u64 addr = (u64) cur->mem + cur->bitmap_size + block_start * SECTION_SIZE;
-					serial_info("heap: return address 0x%x in node 0x%x at bitmap offset %u", addr, cur, block_start);
+					((struct HeapBlockHeader *) addr)->size = sections_needed;
+					addr += sizeof(struct HeapBlockHeader);
+
+					serial_info("heap: return address 0x%x in node 0x%x at bitmap offset %u",
+							addr, cur, block_start);
+
 					return (void *) addr;
 				}
 			}
@@ -165,15 +179,61 @@ void *kmalloc(u64 size) {
 	// no memory left, allocate more blocks
 	u64 pages64 = ceil_u64_div(size, PAGE_SIZE);
 	if (pages64 & 0xFFFFFFFF00000000)
-		panic("You asked for too much memory");
+		panic("kmalloc: you asked for too much memory"); // lol yeah
 	add_block((u32) (pages64 & 0xFFFFFFFF));
 	
 	// this is very wasteful, but I'm lazy
 	return kmalloc(size);
 }
 
-void kfree(void *mem) {
+void release_if_unused(struct HeapBitmapNode *prev, struct HeapBitmapNode *node) {
+	// then the node is head. do not release the head
+	if (prev == node)
+		return;
 
+	if (prev->next != node)
+		panic("heap: assertion failed!");
+
+	u32 total_size = node->total_size, bitmap_size = node->bitmap_size;
+	for (u32 i = 0; i < bitmap_size / 8; i++) {
+		// something is being used
+		if (node->mem[i])
+			return;
+	}
+
+	// release the memory because nothing is used
+	prev->next = 0;
+	vmm_free(node);
+
+	serial_info("released heap block at 0x%x", node);
+}
+
+void kfree(void *mem) {
+	// I love C.
+	u64 size = ((struct HeapBlockHeader *) ((u64) mem - sizeof(struct HeapBlockHeader)))->size;
+	// move it back to get the "real" location
+	mem = (void *) ((u64) mem - sizeof(struct HeapBlockHeader));
+
+	serial_info("heap: freeing memory at 0x%x with detected size %u", mem, size);
+
+	struct HeapBitmapNode *cur = heap_head, *prev = heap_head;
+	while (cur != 0) {
+		u32 total_size = cur->total_size, bitmap_size = cur->bitmap_size;
+		u64 node_mem = (u64) cur->mem;
+
+		if (node_mem + bitmap_size <= (u64) mem && (u64) mem <= node_mem + total_size) {
+			u64 bitmap_offset = ((u64) mem - (node_mem + bitmap_size)) / SECTION_SIZE;
+			unmark_bitmap(cur, bitmap_offset, size);
+			release_if_unused(prev, cur);
+			return;
+		}
+
+		if (cur != heap_head)
+			prev = prev->next;
+		cur = cur->next;
+	}
+
+	panic("kfree: something is very wrong");
 }
 
 void heap_log_status() {
@@ -181,11 +241,11 @@ void heap_log_status() {
 	struct HeapBitmapNode *cur = heap_head;
 	while (cur != 0) {
 		u32 total_size = cur->total_size, bitmap_size = cur->bitmap_size;
-		serial_debug("heap: node addr 0x%x, total size 0x%x, bitmap size 0x%x",
-			   (u64) cur, total_size, bitmap_size);
+		serial_debug("heap: node addr 0x%x, total size 0x%x, bitmap %u entries (size 0x%x)",
+			   (u64) cur, total_size, bitmap_size / 8, bitmap_size);
 		serial_debug("heap: bitmap contents:");
 		for (u32 i = 0; i < bitmap_size / 8; i++)
-			serial_debug("  offset 0x%x: 0x%x", i * 8, cur->mem[i]);
+			serial_debug("  %u (offset 0x%x): 0x%x", i, i * 8, cur->mem[i]);
 		cur = cur->next;
 	}
 }

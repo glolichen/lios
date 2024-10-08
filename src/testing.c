@@ -7,16 +7,36 @@
 
 void run_tests() {
 	// heap allocation testing code
-	fb_printf("address: 0x%x\n", kmalloc(44));
+	void *mem1 = kmalloc(44);
 	heap_log_status();
-	fb_printf("address: 0x%x\n", kmalloc(123));
+	fb_printf("address: 0x%x\n", mem1);
+
+	void *mem2 = kmalloc(123);
 	heap_log_status();
-	fb_printf("address: 0x%x\n", kmalloc(2302));
+	fb_printf("address: 0x%x\n", mem2);
+
+	void *mem3 = kmalloc(2302);
 	heap_log_status();
-	fb_printf("address: 0x%x\n", kmalloc(75 + 64 * 8));
+	fb_printf("address: 0x%x\n", mem3);
+
+	kfree(mem1);
+	kfree(mem2);
+	kfree(mem3);
 	heap_log_status();
-	fb_printf("address: 0x%x\n", kmalloc(12000));
+
+	void *mem4 = kmalloc(75 + 64 * 8);
 	heap_log_status();
+	fb_printf("address: 0x%x\n", mem4);
+
+	void *mem5 = kmalloc(12000);
+	heap_log_status();
+	fb_printf("address: 0x%x\n", mem5);
+
+	vmm_log_status();
+	kfree(mem4);
+	kfree(mem5);
+	heap_log_status();
+	vmm_log_status();
 
 	// virtual memory manager testing
 	// u64 *thing1 = (u64 *) vmm_alloc(3);
