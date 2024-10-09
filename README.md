@@ -9,11 +9,12 @@ An experimental x86_64 operating system written from scratch in C.
  * Some basic memory management
    * Uses paging (obviously)
    * Linked list based page frame and virtual address allocator
+ * Kernel heap allocator (using linked lists + bitmap)
 
 ## Planned Features
- * Kernel heap allocator (in progress, more linked lists + bitmap)
  * Virtual address allocator can only use 1 4KiB page, which is 128 linked list nodes! This is quite bad and needs to be fixed ASAP
- * Filesystem (likely `ext2`)
+ * Filesystem and hard disk/solid state drive driver
+ * Processes!
  * ELF program loading and userspace programs
  * Userspace shell program
  * More efficient memory allocation (buddy, slab/slub, something other than linked list)
