@@ -205,7 +205,7 @@ void release_if_unused(struct HeapBitmapNode *prev, struct HeapBitmapNode *node)
 	prev->next = 0;
 	vmm_free(node);
 
-	serial_info("released heap block at 0x%x", node);
+	serial_info("heap: released heap block at 0x%x", node);
 }
 
 void kfree(void *mem) {

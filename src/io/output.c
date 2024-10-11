@@ -238,7 +238,7 @@ u32 serial_debug_no_line(const char *format, ...) {
 }
 u32 serial_info_no_line(const char *format, ...) {
 	if (!PRINT_INFO_SERIAL)
-			return 0;
+		return 0;
 
 	print(SERIAL, "INFO:  ", 7);
 
@@ -290,7 +290,7 @@ u32 serial_debug(const char *format, ...) {
 }
 u32 serial_info(const char *format, ...) {
 	if (!PRINT_INFO_SERIAL)
-			return 0;
+		return 0;
 
 	print(SERIAL, "INFO:  ", 7);
 
