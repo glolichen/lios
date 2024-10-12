@@ -34,9 +34,19 @@ mboot:
 	dd MBOOT_ARCH
 	dd MBOOT_HEADER_LENGTH
 	dd MBOOT_CHECK
+
+	align 8
+	dw 5
+	dw 0 ;instead of 0, you can specify your flags
+	dd 20
+	dd 1024 ;instead of 1024, you can specify your width
+	dd 768 ;instead of 768, you can specify your height
+	dd 32 ;instead of 32, you can specify your BPP
+
+	align 8
 	dw 0
 	dw 0
-	dd 0
+	dd 8
 mboot_end:
 
 ; clear the "booting os" message
@@ -70,6 +80,10 @@ clear_message:
 	mov byte [FRAME_BUFFER + 25], 7
 	mov byte [FRAME_BUFFER + 26], 32
 	mov byte [FRAME_BUFFER + 27], 7
+	mov byte [FRAME_BUFFER + 28], 32
+	mov byte [FRAME_BUFFER + 29], 7
+	mov byte [FRAME_BUFFER + 30], 32
+	mov byte [FRAME_BUFFER + 31], 7
 	ret
 
 ; uses eax, ebx, ecx, edx; eax: string, ebx: length
@@ -94,7 +108,6 @@ error_end:
 
 _start:
 	cli
-	call clear_message
 
 	mov esp, no_offset(stack_bottom)
 	mov ebp, no_offset(stack_bottom)

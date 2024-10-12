@@ -111,3 +111,39 @@ void pmm_free(PhysicalAddress mem) {
 	kernel->next = old_kernel;
 	kernel->addr = mem;
 }
+
+// reserve parts of physical memory for something (just the frame buffer)
+// only works before anything is allocated
+void pmm_clear_blocks(u64 start, u64 end) {
+	// pretend it has to be above 2GiB, I guess
+	// find first and last node that need to be removed
+	struct PhysFreeListNode *cur = user, *start_node = 0, *end_node = 0;
+	serial_debug("pmm: thingy 0x%x 0x%x 0x%x", cur->addr, start, end);
+	u64 count = 0;
+	while (cur != 0) {
+		count++;
+		if (cur->addr == start)
+			serial_debug("pmm: clear: found start: 0x%x", cur);
+		if (cur->addr == end)
+			serial_debug("pmm: clear: found end: 0x%x", cur);
+		cur = cur->next;
+	}
+	serial_debug("pmm: start addr: 0x%x", start_node);
+	serial_debug("pmm: end addr: 0x%x", end_node);
+	serial_debug("count %u", count);
+}
+
+void pmm_log_status() {
+	struct PhysFreeListNode *cur = user;
+	serial_debug("pmm: printing status");
+
+	u64 count = 0;
+	serial_debug("    FIRST IS 0x%x", cur->addr);
+	while (cur != 0) {
+		count++;
+		if (cur->next == 0)
+			serial_debug("    LAST IS 0x%x", cur->addr);
+		cur = cur->next;
+	}
+	serial_debug("    COUNT IS 0x%x", count);
+}

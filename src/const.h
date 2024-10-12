@@ -56,6 +56,7 @@ enum FBColor {
 #define SERIAL_LINE_ENABLE_DLAB 0x80
 
 #define FB_ADDRESS (KERNEL_OFFSET + 0xB8000)
+#define FRAMEBUFFER_SIZE (1024 * 768 * 4)
 
 #define PICM 0x20
 #define PICS 0xA0

@@ -5,6 +5,8 @@
 #include "serial.h"
 #include "output.h"
 #include "../const.h"
+#include "../panic.h"
+#include "../mem/pmm.h"
 
 const u32 U64_MAX_LENGTH_DEC = 20;
 const u64 POWERS_10[] = {
@@ -61,11 +63,16 @@ u32 get_pos(u32 row, u32 col) {
 	return col * 2 + row * FB_COLS * 2;
 }
 
-void fb_init() {
+void fb_init(u8 *addr) {
+	if (!addr)
+		panic("output: framebuffer init: no frame buffer tag!");
+
+	pmm_clear_blocks((u64) addr, (u64) addr + FRAMEBUFFER_SIZE);
+
 	cur_row = 0, cur_col = 0;
 	fb = (char *) FB_ADDRESS;
-	serial_info("Frame buffer initialized");
-	fb_clear();
+	serial_info("output: frame buffer initialized");
+	// fb_clear();
 }
 
 void fb_write_cell(u32 pos, char c, enum FBColor fg, enum FBColor bg) {

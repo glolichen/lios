@@ -39,6 +39,12 @@ void handle_exception(struct InterruptData *data) {
 		EXCEPTIONS[data->interrupt_num],
 		data->error_code
 	);
+	serial_error(
+		"Exception 0x%x: %s, code %u",
+		data->interrupt_num,
+		EXCEPTIONS[data->interrupt_num],
+		data->error_code
+	);
 	void (*handler)(struct InterruptData *) = irq_routines[data->interrupt_num];
 	if (handler)
 		handler(data);

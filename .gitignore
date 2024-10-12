@@ -4,6 +4,6 @@ qemulog.txt
 *.iso
 iso/*
 .vscode/*
-serial.*
+serial.out
 libgcc.a
 bx_enh_dbg.ini

@@ -38,6 +38,8 @@ void vmm_init(u64 free_virt_start) {
 	// need to move forward 127 times
 	struct VirtFreeListNode *cur = vmm_head;
 	for (u32 i = 1; i < 128; i++) {
+		// FIXME: the PMM user stack gets overwritten here???
+		pmm_log_status();
 		// pointer arithemetic -- will increment by 32 bytes
 		cur->next = cur + 1;
 		cur = cur->next;

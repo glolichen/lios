@@ -28,9 +28,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 			u64 pml4[512], u64 pdpt_low[512], u64 pdt_low[512], u64 pt_low[512]) {
 	serial_init();
 
-	fb_init();
-	fb_printf("Hello world!\n");
-
 	u64 limit = tss_end - tss_start;
 	tss_entry->limit = limit & 0xFFFF;
 	tss_entry->base_low = tss_start & 0xFFFF;
@@ -72,7 +69,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	u64 mem_start_mbi = 0, mem_size_mbi = 0;
 
 	struct multiboot_tag *tag = (struct multiboot_tag *) (mboot_addr + 8);
-	fb_printf("0x%x\n", tag);
+	u8 *framebuffer_addr = 0;
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
 		serial_info("tag 0x%x, Size 0x%x", tag->type, tag->size);
 		switch (tag->type) {
@@ -128,6 +125,15 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 				multiboot_uint32_t color;
 				unsigned i;
 				struct multiboot_tag_framebuffer *tagfb = (struct multiboot_tag_framebuffer *) tag;
+
+				framebuffer_addr = (u8 *) tagfb->common.framebuffer_addr;
+				serial_info("framebuffer address 0x%x", tagfb->common.framebuffer_addr);
+				serial_info("framebuffer type %u", tagfb->common.framebuffer_type);
+				serial_info("framebuffer pitch %u", tagfb->common.framebuffer_pitch);
+				serial_info("framebuffer width %u", tagfb->common.framebuffer_width);
+				serial_info("framebuffer height %u", tagfb->common.framebuffer_height);
+				serial_info("framebuffer type %u", tagfb->common.framebuffer_type);
+
 				void *fb = (void *) (unsigned long) tagfb->common.framebuffer_addr;
 				switch (tagfb->common.framebuffer_type) {
 					case MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED: {
@@ -164,6 +170,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 						color = 0xffffffff;
 						break;
 				}
+				serial_info("framebuffer color type %u", color);
 				break;
 			}
 		}
@@ -174,7 +181,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	}
 	tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 	serial_info("total mbi size 0x%x", tag - mboot_addr);
-	// FSF COPIED CODE END
 	
 	// un-identity map first 2G
 	pml4[0] = 0;
@@ -200,6 +206,9 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	heap_init();
 	heap_log_status();
 
-	run_tests();
+	// pmm_log_status();
+	fb_init(framebuffer_addr);
+
+	// run_tests();
 }
 

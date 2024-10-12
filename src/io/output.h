@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include "../const.h"
 
-void fb_init();
+void fb_init(u8 *addr);
 void fb_putchar(char c);
 void fb_clear();
 
