@@ -6,42 +6,43 @@
 #include "mem/pmm.h"
 
 void run_tests() {
+	serial_info("===== TESTING BELOW =====");
 	// heap allocation testing code
-	void *mem1 = kmalloc(44);
-	heap_log_status();
-	fb_printf("address: 0x%x\n", mem1);
-
-	void *mem2 = kmalloc(123);
-	heap_log_status();
-	fb_printf("address: 0x%x\n", mem2);
-
-	void *mem3 = kmalloc(2302);
-	heap_log_status();
-	fb_printf("address: 0x%x\n", mem3);
-
-	kfree(mem1);
-	kfree(mem2);
-	kfree(mem3);
-	heap_log_status();
-
-	void *mem4 = kmalloc(75 + 64 * 8);
-	heap_log_status();
-	fb_printf("address: 0x%x\n", mem4);
-
-	void *mem5 = kmalloc(12000);
-	heap_log_status();
-	fb_printf("address: 0x%x\n", mem5);
-
-	vmm_log_status();
-	kfree(mem4);
-	kfree(mem5);
-	heap_log_status();
-	vmm_log_status();
+	// void *mem1 = kmalloc(44);
+	// heap_log_status();
+	// fb_printf("address: 0x%x\n", mem1);
+	//
+	// void *mem2 = kmalloc(123);
+	// heap_log_status();
+	// fb_printf("address: 0x%x\n", mem2);
+	//
+	// void *mem3 = kmalloc(2302);
+	// heap_log_status();
+	// fb_printf("address: 0x%x\n", mem3);
+	//
+	// kfree(mem1);
+	// kfree(mem2);
+	// kfree(mem3);
+	// heap_log_status();
+	//
+	// void *mem4 = kmalloc(75 + 64 * 8);
+	// heap_log_status();
+	// fb_printf("address: 0x%x\n", mem4);
+	//
+	// void *mem5 = kmalloc(12000);
+	// heap_log_status();
+	// fb_printf("address: 0x%x\n", mem5);
+	//
+	// vmm_log_status();
+	// kfree(mem4);
+	// kfree(mem5);
+	// heap_log_status();
+	// vmm_log_status();
 
 	// virtual memory manager testing
-	// u64 *thing1 = (u64 *) vmm_alloc(3);
-	// u64 *thing2 = (u64 *) vmm_alloc(2);
-	// vmm_log_status();
+	u64 *thing1 = (u64 *) vmm_alloc(3);
+	u64 *thing2 = (u64 *) vmm_alloc(2);
+	vmm_log_status();
 	// // for (u32 i = 0; i < 10; i++)
 	// // 	thing1[i] = 1 << i;
 	// // page unmap test, should result in page fault
@@ -58,8 +59,8 @@ void run_tests() {
 	// // 	fb_printf("%u ", thing2[i]);
 	// // fb_printf("\n");
 	//
-	// vmm_free(thing1);
-	// vmm_log_status();
+	vmm_free(thing1);
+	vmm_log_status();
 	// // destroy header test
 	// // *((u64 *) ((u64) thing2 - 8)) = 2000;
 	// vmm_free(thing2);

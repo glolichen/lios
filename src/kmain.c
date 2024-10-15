@@ -191,11 +191,12 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	serial_info("removed 0-2GiB identity map");
 
 	// calculate when the kernel actually ends from info provided by linker
-	u64 mem_start = ((u64) &kernel_end) - 0xFFFFFFFF80000000;
+	u64 mem_start = ((u64) &kernel_end) - KERNEL_OFFSET;
 	// 4096 byte align
-	mem_start = (mem_start + 0x1000) & ~(0x1000 - 1);
+	mem_start = (mem_start + PAGE_SIZE) & ~(PAGE_SIZE - 1);
 	u64 mem_end = mem_start_mbi + mem_size_mbi;
 	u64 free_virt_start = pmm_init(mem_start, mem_end);
+	pmm_log_status();
 
 	pml4 = (u64 *) ((u64) pml4 + KERNEL_OFFSET);
 	page_init(pml4);
@@ -206,9 +207,8 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	heap_init();
 	heap_log_status();
 
-	// pmm_log_status();
 	fb_init(framebuffer_addr);
-
 	// run_tests();
+	vmm_log_status();
 }
 

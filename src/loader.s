@@ -37,11 +37,11 @@ mboot:
 
 	align 8
 	dw 5
-	dw 0 ;instead of 0, you can specify your flags
+	dw 0
 	dd 20
-	dd 1024 ;instead of 1024, you can specify your width
-	dd 768 ;instead of 768, you can specify your height
-	dd 32 ;instead of 32, you can specify your BPP
+	dd 1024
+	dd 768
+	dd 32
 
 	align 8
 	dw 0

@@ -6,7 +6,10 @@
 #include "output.h"
 #include "../const.h"
 #include "../panic.h"
+#include "../kmath.h"
 #include "../mem/pmm.h"
+#include "../mem/vmm.h"
+#include "../mem/page.h"
 
 const u32 U64_MAX_LENGTH_DEC = 20;
 const u64 POWERS_10[] = {
@@ -63,15 +66,34 @@ u32 get_pos(u32 row, u32 col) {
 	return col * 2 + row * FB_COLS * 2;
 }
 
+void putpixel(u8 *framebuffer, u32 pos_x, u32 pos_y, u8 red, u8 green, u8 blue) {
+	u32 location = pos_y * 4096 + pos_x * 4;
+	framebuffer[location] = 255;
+	framebuffer[location + 1] = 255;
+	framebuffer[location + 2] = 255;
+}
+
 void fb_init(u8 *addr) {
 	if (!addr)
 		panic("output: framebuffer init: no frame buffer tag!");
 
 	pmm_clear_blocks((u64) addr, (u64) addr + FRAMEBUFFER_SIZE);
+	u32 pages_needed = ceil_u32_div(FRAMEBUFFER_SIZE, PAGE_SIZE);
 
-	cur_row = 0, cur_col = 0;
-	fb = (char *) FB_ADDRESS;
-	serial_info("output: frame buffer initialized");
+	u64 virt = (u64) vmm_alloc(pages_needed);
+	for (u32 i = 0; i < pages_needed; i++)
+		page_map(virt + i * PAGE_SIZE, (u64) addr + i * PAGE_SIZE);
+
+	serial_info("addr 0x%x 0x%x", virt, page_virt_to_phys_addr(virt));
+	// for (u32 i = 0; i < 15; i++) {
+	// 	// putpixel((u8 *) (KERNEL_OFFSET + 0xA0000), i, i, 255, 0, 255);
+	// 	asm volatile("xchg bx, bx");
+	// 	putpixel((u8 *) virt, i, i, 255, 0, 255);
+	// }
+	//
+	// cur_row = 0, cur_col = 0;
+	// fb = (char *) FB_ADDRESS;
+	// serial_info("output: frame buffer initialized");
 	// fb_clear();
 }
 

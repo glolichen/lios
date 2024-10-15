@@ -178,6 +178,8 @@ void page_map(u64 virt, PhysicalAddress phys) {
 	pte_set_addr(&pt_addr->table[pte], phys);
 	pte_set_flag(&pt_addr->table[pte], PTE_PRESENT);
 	pte_set_flag(&pt_addr->table[pte], PTE_WRITABLE);
+
+	serial_info("page: map 0x%x virt to 0x%x phys", virt, phys);
 }
 
 
@@ -207,7 +209,9 @@ void page_unmap(u64 virt) {
 			pt_used = true;
 	}
 
-	serial_info("page: unmap: PDPT used %u, PDT used %u, PT used %u", pdpt_used, pdt_used, pt_used);
+	serial_info("page: unmap 0x%x virt from 0x%x phys", virt, pte_get_addr(&pt_addr->table[pte]));
+	serial_info("page: PDPT used %u, PDT used %u, PT used %u", pdpt_used, pdt_used, pt_used);
+
 	if (!pdpt_used) {
 		serial_info("page: unmap: free PDPT at virt 0x%x", pdpt_addr);
 		pmm_free(page_virt_to_phys_addr((u64) pdpt_addr));

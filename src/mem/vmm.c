@@ -4,6 +4,7 @@
 #include "pmm.h"
 #include "../const.h"
 #include "../panic.h"
+#include "../kmath.h"
 #include "../io/output.h"
 
 // NOTE: yeah it's really bad
@@ -16,58 +17,55 @@ struct VirtFreeListNode {
 	u64 start; // start of current free virtual address block
 	u64 size; // size of current block
 };
-struct MemBlockHeader {
-	u32 size; // number of (4KiB) pages
-	u32 magic; // magic number for checking
+struct VirtAllocatedNode {
+	struct VirtAllocatedNode *next;
+	u64 start;
+	u32 size;
 };
 
 struct VirtFreeListNode *vmm_head = 0, *vmm_tail = 0;
+struct VirtAllocatedNode *alloc_head;
 
 void vmm_init(u64 free_virt_start) {
-	u64 page_frame = pmm_alloc_kernel();
+	u64 vmm_list_pf = pmm_alloc_kernel();
+	u64 alloc_list_pf = pmm_alloc_kernel();
+
 	page_unmap(free_virt_start);
-	page_map(free_virt_start, page_frame);
-	vmm_head = (struct VirtFreeListNode *) free_virt_start;
+	page_map(free_virt_start, alloc_list_pf);
+
+	page_unmap(free_virt_start + PAGE_SIZE);
+	page_map(free_virt_start + PAGE_SIZE, vmm_list_pf);
+
+	vmm_head = (struct VirtFreeListNode *) (free_virt_start + PAGE_SIZE);
 	vmm_head->prev = 0;
-	vmm_head->start = free_virt_start + PAGE_SIZE;
+	vmm_head->start = free_virt_start + 2 * PAGE_SIZE;
 	vmm_head->size = 0xFFFFFFFFFFFFFFFF - vmm_head->start;
-
-	// sizeof node is 32 bytes
-	// 4096/32 = 128
-	// in total will have 128 nodes, already created 1
-	// need to move forward 127 times
-	struct VirtFreeListNode *cur = vmm_head;
-	for (u32 i = 1; i < 128; i++) {
-		// FIXME: the PMM user stack gets overwritten here???
-		pmm_log_status();
-		// pointer arithemetic -- will increment by 32 bytes
-		cur->next = cur + 1;
-		cur = cur->next;
-		cur->prev = cur - 1;
-		cur->start = 0;
-		cur->size = 0;
+	struct VirtFreeListNode *vmm_cur = vmm_head;
+	for (u32 i = 1; i < floor_u32_div(PAGE_SIZE, sizeof(struct VirtFreeListNode)); i++) {
+		vmm_cur->next = vmm_cur + 1;
+		vmm_cur = vmm_cur->next;
+		vmm_cur->prev = vmm_cur - 1;
+		vmm_cur->start = 0;
+		vmm_cur->size = 0;
 	}
-	vmm_tail = cur;
+	vmm_tail = vmm_cur;
 	vmm_tail->next = 0;
+	serial_info("vmm: created vmm list nodes, starting 0x%x, ending 0x%x", vmm_head, vmm_cur);
 
-	serial_info("vmm: created vmm list nodes, starting 0x%x, ending 0x%x", vmm_head, cur);
-
-	// check linked list
-	// struct FreeListNode *test_cur = head;
-	// while (true) {
-	// 	serial_debug("FREE NODE");
-	// 	serial_debug("    addr:  0x%x", test_cur);
-	// 	serial_debug("    start: 0x%x", test_cur->start);
-	// 	serial_debug("    size:  0x%x", test_cur->size);
-	// 	serial_debug("    next:  0x%x", test_cur->next);
-	// 	serial_debug("    prev:  0x%x", test_cur->prev);
-	// 	if (test_cur->next == 0)
-	// 		break;
-	// 	test_cur = test_cur->next;
-	// }
+	alloc_head = (struct VirtAllocatedNode *) free_virt_start;
+	alloc_head->start = 0;
+	alloc_head->size = 0;
+	struct VirtAllocatedNode *alloc_cur = alloc_head;
+	for (u32 i = 1; i < floor_u32_div(PAGE_SIZE, sizeof(struct VirtAllocatedNode)); i++) {
+		alloc_cur->next = alloc_cur + 1;
+		alloc_cur = alloc_cur->next;
+		alloc_cur->start = 0;
+		alloc_cur->size = 0;
+	}
+	serial_info("vmm: created alloc list nodes, starting 0x%x, ending 0x%x", alloc_head, alloc_cur);
 }
 
-void remove_node(struct VirtFreeListNode *node) {
+void vmm_list_remove_node(struct VirtFreeListNode *node) {
 	// set start and size to zero, indicating empty node
 	node->start = 0;
 	node->size = 0;
@@ -96,10 +94,37 @@ void remove_node(struct VirtFreeListNode *node) {
 	vmm_tail = node;
 }
 
-// TODO: allocate and map page frames!!!
+void alloc_list_add_node(u64 start, u32 size) {
+	struct VirtAllocatedNode *cur = alloc_head;
+	while (cur != 0) {
+		if (cur->start == 0 && cur->size == 0) {
+			cur->start = start;
+			cur->size = size;
+			return;
+		}
+		cur = cur->next;
+	}
+
+	// FIXME: allocate more memory here
+	panic("vmm: not yet implemented");
+}
+u32 alloc_list_find_and_remove(u64 start) {
+	struct VirtAllocatedNode *cur = alloc_head;
+	while (cur != 0) {
+		if (cur->start == start) {
+			u32 size = cur->size;
+			cur->start = 0;
+			cur->size = 0;
+			return size;
+		}
+		cur = cur->next;
+	}
+	panic("vmm: freeing block that is not in list!");
+}
+
 void *vmm_alloc(u32 pages) {
 	// make space for header here
-	u64 request_size = pages * PAGE_SIZE + sizeof(struct MemBlockHeader);
+	u64 request_size = pages * PAGE_SIZE;
 	struct VirtFreeListNode *cur = vmm_head;
 	// after the last node cur moves to 0
 	while (cur != 0) {
@@ -107,7 +132,7 @@ void *vmm_alloc(u32 pages) {
 		if (size >= request_size) {
 			// exact fit -- delete node by adding to the end
 			if (size == request_size)
-				remove_node(cur);
+				vmm_list_remove_node(cur);
 			// inexact fit -- shrink node
 			else {
 				cur->start += request_size;
@@ -117,36 +142,30 @@ void *vmm_alloc(u32 pages) {
 			// unmap virtual address, allocate page frame, map to new page frame
 			serial_info("vmm: request physical page frames");
 			for (u32 i = 0; i < pages; i++) {
-				u64 virt = start + sizeof(struct MemBlockHeader) + i * PAGE_SIZE;
+				u64 virt = start + i * PAGE_SIZE;
 				PhysicalAddress page_frame = pmm_alloc_kernel();
 				page_unmap(virt);
 				page_map(virt, page_frame);
 			}
 
-			((struct MemBlockHeader *) start)->magic = VMM_MAGIC;
-			((struct MemBlockHeader *) start)->size = pages;
-
-			serial_info("vmm: allocate %u pages with header at 0x%x", pages, start);
-			return (void *) (start + sizeof(struct MemBlockHeader));
+			alloc_list_add_node(start, pages);
+			serial_info("vmm: allocate %u pages at 0x%x", pages, start);
+			return (void *) start;
 		}
 		
 		// serial_info("VMM NODE start 0x%x size 0x%x", start, size);
 		cur = cur->next;
 	}
 
-	panic("Out of memory! (VMM)");
+	panic("vmm: out of memory!");
 	return 0;
 }
 
 void vmm_free(void *mem) {
-	struct MemBlockHeader *header = ((struct MemBlockHeader *) mem - 1);
-	// save the # of pages before page is freed
-	u32 pages = header->size;
-	u64 block_start = (u64) header, block_end = (u64) mem + pages * PAGE_SIZE;
-	serial_info("vmm: free virt block at 0x%x, %u pages", mem, pages);
-
-	if (header->magic != VMM_MAGIC)
-		panic("Incorrect magic number! (VMM)");
+	u32 pages = alloc_list_find_and_remove((u64) mem);
+	serial_info("vmm: freeing block 0x%x, detected size 0x%x", (u64) mem, pages);
+	u64 block_start = (u64) mem;
+	u64 block_end = block_start + pages * PAGE_SIZE;
 
 	// remap virtual address to normal position, free page frame
 	for (u32 i = 0; i < pages; i++) {
@@ -185,7 +204,7 @@ void vmm_free(void *mem) {
 	// not found then add node by moving (hopefully empty) tail node to head
 	if (!found_merge) {
 		if (vmm_tail->start && vmm_tail->size)
-			panic("Not yet implemented D: (VMM)");
+			panic("vmm: not yet implemented D:");
 
 		// make it no longer tail, make previous node tail
 		cur = vmm_tail;
@@ -195,10 +214,10 @@ void vmm_free(void *mem) {
 		// previous = 0 means head, make it point to current head
 		cur->prev = 0;
 		cur->next = vmm_head;
-		// head is memory but subtract header
-		cur->start = (u64) mem - sizeof(struct MemBlockHeader);
-		// size is based on number of blocks but add header size
-		cur->size = pages * PAGE_SIZE + sizeof(struct MemBlockHeader);
+
+		cur->start = (u64) mem;
+		cur->size = pages * PAGE_SIZE;
+
 		// make before of current head point to current node
 		vmm_head->prev = cur;
 		// move current node to head
@@ -215,13 +234,13 @@ void vmm_free(void *mem) {
 		u64 start = cur->start, size = cur->size;
 		if (block_start == start + size) {
 			cur->size += (block_end - block_start);
-			remove_node(merged);
+			vmm_list_remove_node(merged);
 			break;
 		}
 		if (block_end == start) {
 			cur->start -= (block_end - block_start);
 			cur->size += (block_end - block_start);
-			remove_node(merged);
+			vmm_list_remove_node(merged);
 			break;
 		}
 		cur = cur->next;
@@ -230,18 +249,32 @@ void vmm_free(void *mem) {
 
 void vmm_log_status() {
 	serial_debug("vmm: printing status");
-	u32 empty_node_count = 0, node_count = 0;
-	struct VirtFreeListNode *cur = vmm_head;
-	while (cur != 0) {
-		u64 start = cur->start, size = cur->size;
+	u32 vmm_empty_node = 0, vmm_node_count = 0;
+	struct VirtFreeListNode *vmm_cur = vmm_head;
+	serial_debug("vmm: list nodes:");
+	while (vmm_cur != 0) {
+		u64 start = vmm_cur->start, size = vmm_cur->size;
 		if (start && size)
-			serial_debug("vmm: node 0x%x, addr 0x%x, size 0x%x", (u64) cur, start, size);
+			serial_debug("    list node 0x%x, addr 0x%x, size 0x%x", (u64) vmm_cur, start, size);
 		else
-			empty_node_count++;
-		node_count++;
-		cur = cur->next;
+			vmm_empty_node++;
+		vmm_node_count++;
+		vmm_cur = vmm_cur->next;
 	}
+	serial_debug("vmm: list has %u nodes, %u empty", vmm_node_count, vmm_empty_node);
 
-	serial_debug("vmm: %u nodes, %u empty", node_count, empty_node_count);
+	u32 alloc_empty_node = 0, alloc_node_count = 0;
+	struct VirtAllocatedNode *alloc_cur = alloc_head;
+	serial_debug("vmm: alloc nodes:");
+	while (alloc_cur != 0) {
+		u64 start = alloc_cur->start, size = alloc_cur->size;
+		if (start && size)
+			serial_debug("    allocated block 0x%x, addr 0x%x, size 0x%x", (u64) alloc_cur, start, size);
+		else
+			alloc_empty_node++;
+		alloc_node_count++;
+		alloc_cur = alloc_cur->next;
+	}
+	serial_debug("alloc: list has %u nodes, %u empty", alloc_node_count, alloc_empty_node);
 }
 
