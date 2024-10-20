@@ -15,7 +15,7 @@ u64 stack_start, free_start;
 struct PhysFreeListNode *kernel = 0, *user = 0;
 
 // returns start of free virtual memory
-u64 pmm_init(u64 start, u64 end) {
+void pmm_init(u64 start, u64 end) {
 	// upper bound for stack space needed
 	u64 stack_space;
 	struct PhysFreeListNode *cur;
@@ -49,7 +49,7 @@ u64 pmm_init(u64 start, u64 end) {
 	}
 
 	if (!more_than_2)
-		return (u64) (cur + 1 + PAGE_SIZE) & ~(PAGE_SIZE - 1);
+		return;
 
 	// 4KiB align downwards
 	end &= ~(PAGE_SIZE - 1);
@@ -66,10 +66,10 @@ u64 pmm_init(u64 start, u64 end) {
 		cur = cur->next;
 	}
 
-	return (u64) (cur + 1 + PAGE_SIZE) & ~(PAGE_SIZE - 1);
+	return;
 }
 
-PhysicalAddress pmm_alloc_kernel() {
+PhysicalAddress pmm_alloc_low() {
 	if (kernel == 0)
 		panic("pmm: out of memory!");
 	u64 next = (u64) kernel->addr;
@@ -78,11 +78,12 @@ PhysicalAddress pmm_alloc_kernel() {
 	return next;
 }
 
-PhysicalAddress pmm_alloc_user() {
+PhysicalAddress pmm_alloc_high() {
 	// if there is no user memory left then allocate something <2GiB
 	if (user == 0) {
 		serial_info("pmm: kernel (<2GiB) mem allocate for user below");
-		return pmm_alloc_kernel();
+		panic("pmm: not yet implented!");
+		// return pmm_alloc_kernel();
 	}
 	u64 next = (u64) user->addr;
 	serial_info("pmm: allocate node 0x%x, addr 0x%x (user)", user, user->addr);
@@ -99,6 +100,7 @@ void pmm_free(PhysicalAddress mem) {
 		user = (struct PhysFreeListNode *) node_addr;
 		user->next = old_user;
 		user->addr = mem;
+		serial_info("pmm ok");
 		return;
 	}
 	// freeing kernel memory

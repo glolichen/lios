@@ -60,18 +60,7 @@ typedef enum {
 } Destination;
 
 u32 cur_row, cur_col;
-char *fb;
-
-u32 get_pos(u32 row, u32 col) {
-	return col * 2 + row * FB_COLS * 2;
-}
-
-void putpixel(u8 *framebuffer, u32 pos_x, u32 pos_y, u8 red, u8 green, u8 blue) {
-	u32 location = pos_y * 4096 + pos_x * 4;
-	framebuffer[location] = 255;
-	framebuffer[location + 1] = 255;
-	framebuffer[location + 2] = 255;
-}
+u8 *fb_virt;
 
 void fb_init(u8 *addr) {
 	if (!addr)
@@ -79,77 +68,75 @@ void fb_init(u8 *addr) {
 
 	pmm_clear_blocks((u64) addr, (u64) addr + FRAMEBUFFER_SIZE);
 	u32 pages_needed = ceil_u32_div(FRAMEBUFFER_SIZE, PAGE_SIZE);
-
-	u64 virt = (u64) vmm_alloc(pages_needed);
+	u64 virt = 0xFFFF800000000000;
 	for (u32 i = 0; i < pages_needed; i++)
-		page_map(virt + i * PAGE_SIZE, (u64) addr + i * PAGE_SIZE);
+		page_map(virt + i * PAGE_SIZE, (PhysicalAddress) addr + i * PAGE_SIZE);
 
-	serial_info("addr 0x%x 0x%x", virt, page_virt_to_phys_addr(virt));
-	// for (u32 i = 0; i < 15; i++) {
-	// 	// putpixel((u8 *) (KERNEL_OFFSET + 0xA0000), i, i, 255, 0, 255);
-	// 	asm volatile("xchg bx, bx");
-	// 	putpixel((u8 *) virt, i, i, 255, 0, 255);
-	// }
-	//
-	// cur_row = 0, cur_col = 0;
-	// fb = (char *) FB_ADDRESS;
-	// serial_info("output: frame buffer initialized");
-	// fb_clear();
+	serial_info("fb: initialize framebuffer at 0x%x virt -> 0x%x phys", virt, page_virt_to_phys_addr(virt));
+
+	fb_virt = (u8 *) virt;
 }
 
-void fb_write_cell(u32 pos, char c, enum FBColor fg, enum FBColor bg) {
-	fb[pos] = c;
-	fb[pos + 1] = MAKE_COLOR(fg, bg);
+void fb_putpixel(u32 pos_x, u32 pos_y, u8 red, u8 green, u8 blue) {
+	u32 location = pos_y * 4096 + pos_x * 4;
+	fb_virt[location] = 255;
+	fb_virt[location + 1] = 255;
+	fb_virt[location + 2] = 255;
 }
 
-void fb_move_cursor(u16 pos) {
-	outb(FB_COMMAND_PORT, FB_COMMAND_HIGH_BYTE_COMMAND);
-	outb(FB_DATA_PORT, (pos & U16_HIGH_BYTE) >> 8);
-	outb(FB_COMMAND_PORT, FB_COMMAND_LOW_BYTE_COMMAND);
-	outb(FB_DATA_PORT, pos & U16_LOW_BYTE);
-}
-
-void fb_newline() {
-	cur_col = 0;
-	if (++cur_row < FB_ROWS)
-		return;
-	cur_row--;
-	for (u32 i = 0; i < FB_ROWS - 1; i++) {
-		for (u32 j = 0; j < FB_COLS; j++) {
-			u32 curLine = get_pos(i, j);
-			u32 nextLine = get_pos(i + 1, j);
-			fb[curLine] = fb[nextLine];
-			fb[curLine + 1] = fb[nextLine + 1];
-		}
-	}
-	for (u32 j = 0; j < FB_COLS; j++)
-		fb[get_pos(cur_row, j)] = ' ';
-}
-
-void fb_putchar(char c) {
-	if (c == '\n') {
-		fb_newline();
-		return;
-	}
-	fb_write_cell(get_pos(cur_row, cur_col), c, LIGHT_GRAY, BLACK);
-	if (++cur_col >= FB_COLS)
-		fb_newline();
-	fb_move_cursor(get_pos(cur_row, cur_col));
-}
-
-void fb_clear() {
-	fb_move_cursor(0);
-	for (u32 i = 0; i < FB_ROWS ; i++) {
-		for (u32 j = 0; j < FB_COLS; j++)
-			fb_write_cell(get_pos(i, j), ' ', LIGHT_GRAY, BLACK);
-	}
-	serial_info("Frame buffer cleared");
-}
+// void fb_write_cell(u32 pos, char c, enum FBColor fg, enum FBColor bg) {
+// 	fb[pos] = c;
+// 	fb[pos + 1] = MAKE_COLOR(fg, bg);
+// }
+//
+// void fb_move_cursor(u16 pos) {
+// 	outb(FB_COMMAND_PORT, FB_COMMAND_HIGH_BYTE_COMMAND);
+// 	outb(FB_DATA_PORT, (pos & U16_HIGH_BYTE) >> 8);
+// 	outb(FB_COMMAND_PORT, FB_COMMAND_LOW_BYTE_COMMAND);
+// 	outb(FB_DATA_PORT, pos & U16_LOW_BYTE);
+// }
+//
+// void fb_newline() {
+// 	cur_col = 0;
+// 	if (++cur_row < FB_ROWS)
+// 		return;
+// 	cur_row--;
+// 	for (u32 i = 0; i < FB_ROWS - 1; i++) {
+// 		for (u32 j = 0; j < FB_COLS; j++) {
+// 			u32 curLine = get_pos(i, j);
+// 			u32 nextLine = get_pos(i + 1, j);
+// 			fb[curLine] = fb[nextLine];
+// 			fb[curLine + 1] = fb[nextLine + 1];
+// 		}
+// 	}
+// 	for (u32 j = 0; j < FB_COLS; j++)
+// 		fb[get_pos(cur_row, j)] = ' ';
+// }
+//
+// void fb_putchar(char c) {
+// 	if (c == '\n') {
+// 		fb_newline();
+// 		return;
+// 	}
+// 	fb_write_cell(get_pos(cur_row, cur_col), c, LIGHT_GRAY, BLACK);
+// 	if (++cur_col >= FB_COLS)
+// 		fb_newline();
+// 	fb_move_cursor(get_pos(cur_row, cur_col));
+// }
+//
+// void fb_clear() {
+// 	fb_move_cursor(0);
+// 	for (u32 i = 0; i < FB_ROWS ; i++) {
+// 		for (u32 j = 0; j < FB_COLS; j++)
+// 			fb_write_cell(get_pos(i, j), ' ', LIGHT_GRAY, BLACK);
+// 	}
+// 	serial_info("Frame buffer cleared");
+// }
 
 void putchar(char c, Destination dest) {
-	if (dest == FRAME_BUFFER)
-		fb_putchar(c);
-	else
+	// if (dest == FRAME_BUFFER)
+	// 	fb_putchar(c);
+	// else
 		serial_putchar(c);
 }
 

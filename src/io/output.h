@@ -5,8 +5,9 @@
 #include "../const.h"
 
 void fb_init(u8 *addr);
-void fb_putchar(char c);
-void fb_clear();
+void fb_putpixel(u32 pos_x, u32 pos_y, u8 red, u8 green, u8 blue);
+// void fb_putchar(char c);
+// void fb_clear();
 
 u32 fb_printf(const char *format, ...);
 

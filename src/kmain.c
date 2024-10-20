@@ -8,8 +8,9 @@
 
 #include "mem/vmm.h"
 #include "mem/pmm.h"
-#include "mem/heap.h"
 #include "mem/page.h"
+#include "mem/vmalloc.h"
+#include "mem/kmalloc.h"
 
 extern u64 kernel_end;
 
@@ -195,20 +196,23 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	// 4096 byte align
 	mem_start = (mem_start + PAGE_SIZE) & ~(PAGE_SIZE - 1);
 	u64 mem_end = mem_start_mbi + mem_size_mbi;
-	u64 free_virt_start = pmm_init(mem_start, mem_end);
+	pmm_init(mem_start, mem_end);
 	pmm_log_status();
 
 	pml4 = (u64 *) ((u64) pml4 + KERNEL_OFFSET);
 	page_init(pml4);
 
-	vmm_init(free_virt_start);
+	vmm_init();
 	vmm_log_status();
 
-	heap_init();
-	heap_log_status();
+	vmalloc_init();
+	vmalloc_log_status();
 
 	fb_init(framebuffer_addr);
+	for (u32 i = 0; i < 500; i++)
+		fb_putpixel(i, i, 255, 255, 255);
+
 	// run_tests();
-	vmm_log_status();
+	// vmm_log_status();
 }
 

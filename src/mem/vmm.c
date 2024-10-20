@@ -26,20 +26,18 @@ struct VirtAllocatedNode {
 struct VirtFreeListNode *vmm_head = 0, *vmm_tail = 0;
 struct VirtAllocatedNode *alloc_head;
 
-void vmm_init(u64 free_virt_start) {
-	u64 vmm_list_pf = pmm_alloc_kernel();
-	u64 alloc_list_pf = pmm_alloc_kernel();
+void vmm_init() {
+	u64 free_virt_start = 0xFFFFF00000000000;
+	u64 vmm_list_pf = pmm_alloc_low();
+	u64 alloc_list_pf = pmm_alloc_low();
 
-	page_unmap(free_virt_start);
 	page_map(free_virt_start, alloc_list_pf);
-
-	page_unmap(free_virt_start + PAGE_SIZE);
 	page_map(free_virt_start + PAGE_SIZE, vmm_list_pf);
 
 	vmm_head = (struct VirtFreeListNode *) (free_virt_start + PAGE_SIZE);
 	vmm_head->prev = 0;
 	vmm_head->start = free_virt_start + 2 * PAGE_SIZE;
-	vmm_head->size = 0xFFFFFFFFFFFFFFFF - vmm_head->start;
+	vmm_head->size = 0xFFFFFFFF80000000 - vmm_head->start;
 	struct VirtFreeListNode *vmm_cur = vmm_head;
 	for (u32 i = 1; i < floor_u32_div(PAGE_SIZE, sizeof(struct VirtFreeListNode)); i++) {
 		vmm_cur->next = vmm_cur + 1;
@@ -143,7 +141,7 @@ void *vmm_alloc(u32 pages) {
 			serial_info("vmm: request physical page frames");
 			for (u32 i = 0; i < pages; i++) {
 				u64 virt = start + i * PAGE_SIZE;
-				PhysicalAddress page_frame = pmm_alloc_kernel();
+				PhysicalAddress page_frame = pmm_alloc_low();
 				page_unmap(virt);
 				page_map(virt, page_frame);
 			}
