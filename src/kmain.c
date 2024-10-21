@@ -5,6 +5,7 @@
 
 #include "io/serial.h"
 #include "io/output.h"
+#include "io/vga.h"
 
 #include "mem/vmm.h"
 #include "mem/pmm.h"
@@ -208,9 +209,16 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	vmalloc_init();
 	vmalloc_log_status();
 
-	fb_init(framebuffer_addr);
-	for (u32 i = 0; i < 500; i++)
-		fb_putpixel(i, i, 255, 255, 255);
+	vga_init(framebuffer_addr);
+
+	// for (u32 i = 0; i < 17; i++) {
+	// 	vga_putchar('h');
+	// 	vga_putchar('e');
+	// 	vga_putchar('l');
+	// 	vga_putchar('l');
+	// 	vga_putchar('o');
+	// 	vga_putchar(' ');
+	// }
 
 	// run_tests();
 	// vmm_log_status();

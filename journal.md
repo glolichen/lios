@@ -1,17 +1,33 @@
 # LiOS Journal
 
-## Everything before
+## Sources
 
-I wrote most of this stuff during exam week last year and over the summer. This includes
- * A physical memory manager (allocates 4096 byte pages of physical memory)
- * A virtual memory manager (allocates sections of virtual memory in blocks)
- * Heap allocator (manages free virtual memory (which has to correspond to blocks of physical memory) and gives them away in any size (specifically, multiples of 4 bytes))
- * *VGA text mode* frame buffer, which cannot be used on UEFI hardware, which has to be supported to boot on modern hardware
- * Keyboard interrupts, obviously
+ * [OSDev Wiki](https://wiki.osdev.org)
+ * [OSTEP book](https://pages.cs.wisc.edu/~remzi/OSTEP/)
 
-## Overcomplicated kernel memory scheme
+## VGA graphical mode
 
-Write now there the kernel memory system is like this:
+In the past, we used VGA text mode. This was a nice system. We could just write an ASCII code to a certain memory offset and that letter is displayed automatically.
+
+VGA text mode is no longer supported when booting with UEFI and only works with legacy BIOS. Unfortunately, modern hardware manufacturers do not want to support legacy BIOS and only support UEFI (our school computers are one such case). So if LiOS has any hope of working on real hardware we have to switch to VGA graphical mode.
+
+In VGA graphical mode you draw pixels instead of letters, and I have no interest in creating a graphical user interface, so the interface will still be terminal based. We will have to download a PC Screen Font (PSF), decode it to figure out which pixels need to be drawn for each characters, and draw them.
+
+We havev no filesystem currently, so we can't just read a PSF file. We will instead hard code the font directly in the C code. Other methods described [here](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) involve quering the BIOS in real mode, fetching them from VGA registers, or linker trickery. This sounds really complicated and hard coding sounds simple enough.
+
+Steps:
+
+1. download 8x16 VGA font [here](https://www.zap.org.au/projects/console-fonts-zap/)
+2. use [this](https://github.com/talamus/rw-psf) tool to convert PSF to plain text
+3. use script (util/psftxt2ints.cpp) to convert plain text to integers
+
+Current problems:
+ * resolution seems to be something other than 1024x768, figure out how to read the actual number from grub
+ * implement new line
+
+## Linux-esque memory allocation scheme
+
+Right now there the kernel memory system is like this:
 
 1. kernel asks heap allocator for some space
 2. heap allocator checks if it has enough free memory. if yes, return the memory. if not, ask the virtual memory manager for more
@@ -25,6 +41,15 @@ That is a problem. To map pages you need to create page structures (pml4, page d
 But what we have before is fine for "normal" kernel structures where physical address does not matter. In Linux this is called `vmalloc`. (In LiOS it is currently called `kmalloc`, confusingly.)
 
 Linux also has `kmalloc`, which allocates *physically* contiguous memory. We will implement a simple version of this, without a heap manager because it's only used for making paging structures, each of which is 4KiB = 1 page.
-4. *tell physical memory manager to mark the previous address, subtracted by `KERNEL_OFFSET`, as used*
 
+Implemented in `c52fc2f`.
+
+## Everything before
+
+I wrote most of this stuff during exam week last year and over the summer. This includes
+ * A physical memory manager (allocates 4096 byte pages of physical memory)
+ * A virtual memory manager (allocates sections of virtual memory in blocks)
+ * Heap allocator (manages free virtual memory (which has to correspond to blocks of physical memory) and gives them away in any size (specifically, multiples of 4 bytes))
+ * *VGA text mode* frame buffer, which cannot be used on UEFI hardware, which has to be supported to boot on modern hardware
+ * Keyboard interrupts, obviously
 
