@@ -134,7 +134,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 				serial_info("framebuffer pitch %u", tagfb->common.framebuffer_pitch);
 				serial_info("framebuffer width %u", tagfb->common.framebuffer_width);
 				serial_info("framebuffer height %u", tagfb->common.framebuffer_height);
-				serial_info("framebuffer type %u", tagfb->common.framebuffer_type);
 
 				void *fb = (void *) (unsigned long) tagfb->common.framebuffer_addr;
 				switch (tagfb->common.framebuffer_type) {
@@ -210,15 +209,8 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	vmalloc_log_status();
 
 	vga_init(framebuffer_addr);
-
-	// for (u32 i = 0; i < 17; i++) {
-	// 	vga_putchar('h');
-	// 	vga_putchar('e');
-	// 	vga_putchar('l');
-	// 	vga_putchar('l');
-	// 	vga_putchar('o');
-	// 	vga_putchar(' ');
-	// }
+	vga_clear();
+	vga_printf("ok\n");
 
 	// run_tests();
 	// vmm_log_status();

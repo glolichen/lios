@@ -5,5 +5,6 @@
 
 void vga_init(u8 *addr);
 void vga_putchar(char c);
+void vga_clear();
 
 #endif

@@ -251,7 +251,7 @@ void page_init(u64 *pml4) {
 void page_fault_handler(struct InterruptData *data) {
 	u64 address;
 	asm volatile("mov %0, cr2" : "=g"(address));
-	// fb_printf("address: 0x%x\n", address);
+	vga_printf("address: 0x%x\n", address);
 	serial_error("address: 0x%x", address);
 }
 

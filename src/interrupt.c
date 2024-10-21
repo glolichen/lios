@@ -33,12 +33,12 @@ void idt_set_entry(u8 index, u64 isr, u8 flags) {
 
 __attribute__((noreturn))
 void handle_exception(struct InterruptData *data) {
-	// fb_printf(
-	// 	"Exception 0x%x: %s, code %u\n",
-	// 	data->interrupt_num,
-	// 	EXCEPTIONS[data->interrupt_num],
-	// 	data->error_code
-	// );
+	vga_printf(
+		"Exception 0x%x: %s, code %u\n",
+		data->interrupt_num,
+		EXCEPTIONS[data->interrupt_num],
+		data->error_code
+	);
 	serial_error(
 		"Exception 0x%x: %s, code %u",
 		data->interrupt_num,

@@ -31,3 +31,5 @@ I didn't really keep track but here are a couple that I remember.
  * Intel and AMD architecture manuals
  * OSDev wiki
  * Some parts of Operating Systems: Three Easy Pieces (Arpaci-Dusseau)
+
+(write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`)

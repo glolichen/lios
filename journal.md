@@ -21,9 +21,7 @@ Steps:
 2. use [this](https://github.com/talamus/rw-psf) tool to convert PSF to plain text
 3. use script (util/psftxt2ints.cpp) to convert plain text to integers
 
-Current problems:
- * resolution seems to be something other than 1024x768, figure out how to read the actual number from grub
- * implement new line
+Implemented in ``.
 
 ## Linux-esque memory allocation scheme
 

@@ -80,11 +80,11 @@ void run_tests() {
 	// // 	thing2[i] = 10 * i;
 	// //
 	// // for (u32 i = 0; i < 10; i++)
-	// // 	fb_printf("%u ", thing1[i]);
-	// // fb_printf("\n");
+	// // 	vga_printf("%u ", thing1[i]);
+	// // vga_printf("\n");
 	// // for (u32 i = 0; i < 10; i++)
-	// // 	fb_printf("%u ", thing2[i]);
-	// // fb_printf("\n");
+	// // 	vga_printf("%u ", thing2[i]);
+	// // vga_printf("\n");
 	//
 	// vmm_free(thing1);
 	// vmm_log_status();
@@ -102,7 +102,7 @@ void run_tests() {
 	//
 	// vmm_log_status();
 	//
-	// fb_printf("ok\n");
+	// vga_printf("ok\n");
 
 	// page_map testing code
 	// u64 page_frame = pmm_alloc_kernel();
@@ -110,15 +110,15 @@ void run_tests() {
 	//
 	// page_map(page_frame, page_frame);
 	// asm("xchg bx, bx");
-	// fb_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
+	// vga_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
 	// *((u64 *) page_frame) = 0xDEADBEEF;
 	//
 	// asm("xchg bx, bx");
-	// fb_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
+	// vga_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
 	//
 	// page_unmap(page_frame);
 	// asm("xchg bx, bx");
-	// fb_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
+	// vga_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
 
 	// physical allocation testing code
 	// u64 mem1 = pmm_alloc_kernel();

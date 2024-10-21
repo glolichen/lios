@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include "../const.h"
 
-u32 fb_printf(const char *format, ...);
+u32 vga_printf(const char *format, ...);
 
 u32 serial_debug(const char *format, ...);
 u32 serial_info(const char *format, ...);

@@ -1,15 +1,10 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "io.h"
+#include "vga.h"
 #include "serial.h"
 #include "output.h"
 #include "../const.h"
-#include "../panic.h"
-#include "../kmath.h"
-#include "../mem/pmm.h"
-#include "../mem/vmm.h"
-#include "../mem/page.h"
 
 const u32 U64_MAX_LENGTH_DEC = 20;
 const u64 POWERS_10[] = {
@@ -60,9 +55,9 @@ typedef enum {
 } Destination;
 
 void putchar(char c, Destination dest) {
-	// if (dest == FRAME_BUFFER)
-	// 	fb_putchar(c);
-	// else
+	if (dest == FRAME_BUFFER)
+		vga_putchar(c);
+	else
 		serial_putchar(c);
 }
 
@@ -156,7 +151,7 @@ u32 printf(Destination dest, const char *format, va_list *arg) {
 	return length;
 }
 
-u32 fb_printf(const char *format, ...) {
+u32 vga_printf(const char *format, ...) {
 	va_list arg;
 	va_start(arg, format);
 	u32 length = printf(FRAME_BUFFER, format, &arg);
