@@ -1,9 +1,20 @@
 # LiOS Journal
 
-## Sources
+## NVME
 
- * [OSDev Wiki](https://wiki.osdev.org)
- * [OSTEP book](https://pages.cs.wisc.edu/~remzi/OSTEP/)
+Storage and filesystem! Unfortunately there's a list of very confusing and hard to understand steps needed...
+1. enumerate PCIe devices
+  * to do this we need to find the MCFG ACPI table
+  * to find that we need to find the RSDT/XSDT
+  * to find that we need to find the Root System Description Pointer (RSDP)
+  * to find that it depends on whether we're booted in BIOS of UEFI
+     * modern hardware uses UEFI so we probably should make the emulator use UEFI too
+     * but QEMU uses BIOS... need to somehow include OVMF so we can boot in UEFI
+  * if we're in UEFI, which we should be, GRUB2 will provide us with the EFI system table
+  * basically: **make QEMU use UEFI --> find EFI system table --> find RSDP --> find RSDT or XSDT --> find MCFG ACPI --> read memory mapped io base address --> read PCIe devices**
+2. write an NVMe driver...
+3. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
+4. filesystem (such as FAT or ext2)
 
 ## VGA graphical mode
 
@@ -21,7 +32,7 @@ Steps:
 2. use [this](https://github.com/talamus/rw-psf) tool to convert PSF to plain text
 3. use script (util/psftxt2ints.cpp) to convert plain text to integers
 
-Implemented in ``.
+Implemented in `1b32127`.
 
 ## Linux-esque memory allocation scheme
 

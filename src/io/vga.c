@@ -57,7 +57,6 @@ u32 get_pos(u32 row, u32 col) {
 }
 
 void vga_newline() {
-	serial_info("a");
 	cur_col = 0;
 	if (++cur_row < VGA_ROWS)
 		return;

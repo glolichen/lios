@@ -13,6 +13,8 @@
 #include "mem/vmalloc.h"
 #include "mem/kmalloc.h"
 
+#include "pci/pci.h"
+
 extern u64 kernel_end;
 
 struct __attribute__((packed)) GDTEntryTSS {
@@ -73,7 +75,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	struct multiboot_tag *tag = (struct multiboot_tag *) (mboot_addr + 8);
 	u8 *framebuffer_addr = 0;
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
-		serial_info("tag 0x%x, Size 0x%x", tag->type, tag->size);
+		serial_info("tag %u, Size 0x%x", tag->type, tag->size);
 		switch (tag->type) {
 			case MULTIBOOT_TAG_TYPE_CMDLINE:
 				serial_info("command line = %s", ((struct multiboot_tag_string *) tag)->string);
@@ -210,9 +212,12 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 
 	vga_init(framebuffer_addr);
 	vga_clear();
-	vga_printf("ok\n");
 
 	// run_tests();
 	// vmm_log_status();
+
+	pci_enumerate_devices();
+
+	vga_printf("ok\n");
 }
 
