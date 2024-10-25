@@ -2,6 +2,7 @@
 #include "interrupt.h"
 #include "multiboot2.h"
 #include "testing.h"
+#include "kmath.h"
 
 #include "io/serial.h"
 #include "io/output.h"
@@ -70,7 +71,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	u32 multiboot_size = *(unsigned *) mboot_addr;
 	serial_info("announced mbi size 0x%x", multiboot_size);
 
-	u64 mem_start_mbi = 0, mem_size_mbi = 0;
+	u64 total_available_mem = 0;
 
 	struct multiboot_tag *tag = (struct multiboot_tag *) (mboot_addr + 8);
 	u8 *framebuffer_addr = 0;
@@ -111,16 +112,16 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 				multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
 				while((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
 					serial_info(
-						"  base_addr = 0x%x, length = 0x%x, type = %s, 0x%x",
+						"    base_addr = 0x%x, length = 0x%x, type = %s, 0x%x",
 						mmap->addr,
 						mmap->len,
 						MULTIBOOT_ENTRY_TYPES[(unsigned) mmap->type],
 						mmap
 					);
-					if (mmap->addr != 0 && mmap->type == MBOOT_MEM_AVAILABLE) {
-						mem_start_mbi = mmap->addr;
-						mem_size_mbi = mmap->len;
-					}
+
+					if (mmap->type == MBOOT_MEM_AVAILABLE && mmap->addr + mmap->len > ((u64) &kernel_end - KERNEL_OFFSET))
+						total_available_mem += mmap->addr + mmap->len - u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET));
+
 					mmap = (multiboot_memory_map_t *) ((u64) mmap + ((struct multiboot_tag_mmap *) tag)->entry_size);
 				}
 				break;
@@ -137,7 +138,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 				serial_info("framebuffer width %u", tagfb->common.framebuffer_width);
 				serial_info("framebuffer height %u", tagfb->common.framebuffer_height);
 
-				void *fb = (void *) (unsigned long) tagfb->common.framebuffer_addr;
 				switch (tagfb->common.framebuffer_type) {
 					case MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED: {
 						unsigned best_distance, distance;
@@ -184,7 +184,25 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	}
 	tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 	serial_info("total mbi size 0x%x", tag - mboot_addr);
-	
+	pmm_set_total(total_available_mem);
+
+	tag = (struct multiboot_tag *) (mboot_addr + 8);
+	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
+		if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
+			multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
+			while((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
+				if (mmap->type == MBOOT_MEM_AVAILABLE && mmap->addr + mmap->len > ((u64) &kernel_end - KERNEL_OFFSET))
+					pmm_add_block(u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET)), mmap->addr + mmap->len);
+				mmap = (multiboot_memory_map_t *) ((u64) mmap + ((struct multiboot_tag_mmap *) tag)->entry_size);
+			}
+
+		}
+		tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
+	}
+
+	pmm_init_final();
+	pmm_log_status();
+
 	// un-identity map first 2G
 	pml4[0] = 0;
 	pdpt_low[0] = 0;
@@ -193,16 +211,10 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	asm volatile("mov rax, cr3; mov cr3, rax" ::: "memory");
 	serial_info("removed 0-2GiB identity map");
 
-	// calculate when the kernel actually ends from info provided by linker
-	u64 mem_start = ((u64) &kernel_end) - KERNEL_OFFSET;
-	// 4096 byte align
-	mem_start = (mem_start + PAGE_SIZE) & ~(PAGE_SIZE - 1);
-	u64 mem_end = mem_start_mbi + mem_size_mbi;
-	pmm_init(mem_start, mem_end);
-	pmm_log_status();
-
 	pml4 = (u64 *) ((u64) pml4 + KERNEL_OFFSET);
 	page_init(pml4);
+
+	pmm_clear_blocks((u64) framebuffer_addr, (u64) framebuffer_addr + FRAMEBUFFER_SIZE);
 
 	vmm_init();
 	vmm_log_status();
@@ -218,6 +230,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 
 	pci_enumerate_devices();
 
-	vga_printf("ok\n");
+	serial_info("setup ok");
+	vga_printf("setup ok\n");
 }
 

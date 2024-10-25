@@ -16,6 +16,12 @@ Storage and filesystem! Unfortunately there's a list of very confusing and hard 
 3. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
 4. filesystem (such as FAT or ext2)
 
+### Nasty bug
+
+There is a nasty physical memory allocation bug. In the past we assumed that the available physical memory is contiguous and starts at the end of the kernel. This is of course not the case as there are a bunch of random UEFI, architecture or other sections fragmenting our available memory. Fixed by rewriting how the PMM is initialized (by adding "blocks" of available memory instead of all at once).
+
+Implemented in `b0f7b63`.
+
 ## VGA graphical mode
 
 In the past, we used VGA text mode. This was a nice system. We could just write an ASCII code to a certain memory offset and that letter is displayed automatically.

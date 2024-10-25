@@ -16,6 +16,11 @@ u64 ceil_u64_div(u64 dividend, u64 divisor) {
 	u64 floor = dividend / divisor;
 	return floor * divisor == dividend ? floor : floor + 1;
 }
+u64 floor_u64_div(u64 dividend, u64 divisor) {
+	u64 floor = dividend / divisor;
+	return floor * divisor == dividend ? floor : floor - 1;
+}
+
 u32 ceil_u32_div(u32 dividend, u32 divisor) {
 	u32 floor = dividend / divisor;
 	return floor * divisor == dividend ? floor : floor + 1;
@@ -25,4 +30,7 @@ u32 floor_u32_div(u32 dividend, u32 divisor) {
 	return floor * divisor == dividend ? floor : floor - 1;
 }
 
+u64 u64_max(u64 a, u64 b) {
+	return a > b ? a : b;
+}
 

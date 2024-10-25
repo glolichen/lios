@@ -33,38 +33,38 @@ void run_tests() {
 	// kfree_page((u64) kmem3);
 
 	// heap allocation testing code
-	void *mem1 = vmalloc(44);
-	vmalloc_log_status();
-	serial_info("address: 0x%x", mem1);
-
-	void *mem2 = vmalloc(123);
-	vmalloc_log_status();
-	serial_info("address: 0x%x", mem2);
-
-	void *mem3 = vmalloc(2302);
-	vmalloc_log_status();
-	serial_info("address: 0x%x", mem3);
-
-	vfree(mem1);
-	vfree(mem2);
-	vfree(mem3);
-	vmalloc_log_status();
-
-	void *mem4 = vmalloc(75 + 64 * 8);
-	vmalloc_log_status();
-	serial_info("address: 0x%x", mem4);
-
-	void *mem5 = vmalloc(12000);
-	vmalloc_log_status();
-	serial_info("address: 0x%x", mem5);
-
-	vmm_log_status();
-	vmalloc_log_status();
-	vfree(mem4);
-	vmalloc_log_status();
-	vfree(mem5);
-	vmalloc_log_status();
-	vmm_log_status();
+	// void *mem1 = vmalloc(44);
+	// vmalloc_log_status();
+	// serial_info("address: 0x%x", mem1);
+	//
+	// void *mem2 = vmalloc(123);
+	// vmalloc_log_status();
+	// serial_info("address: 0x%x", mem2);
+	//
+	// void *mem3 = vmalloc(2302);
+	// vmalloc_log_status();
+	// serial_info("address: 0x%x", mem3);
+	//
+	// vfree(mem1);
+	// vfree(mem2);
+	// vfree(mem3);
+	// vmalloc_log_status();
+	//
+	// void *mem4 = vmalloc(75 + 64 * 8);
+	// vmalloc_log_status();
+	// serial_info("address: 0x%x", mem4);
+	//
+	// void *mem5 = vmalloc(12000);
+	// vmalloc_log_status();
+	// serial_info("address: 0x%x", mem5);
+	//
+	// vmm_log_status();
+	// vmalloc_log_status();
+	// vfree(mem4);
+	// vmalloc_log_status();
+	// vfree(mem5);
+	// vmalloc_log_status();
+	// vmm_log_status();
 
 	// virtual memory manager testing
 	// u64 *thing1 = (u64 *) vmm_alloc(3);
@@ -121,10 +121,10 @@ void run_tests() {
 	// vga_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
 
 	// physical allocation testing code
-	// u64 mem1 = pmm_alloc_kernel();
+	// u64 mem1 = pmm_alloc_low();
 	// pmm_free(mem1);
-	// u64 mem2 = pmm_alloc_kernel();
-	// u64 mem3 = pmm_alloc_kernel();
+	// u64 mem2 = pmm_alloc_low();
+	// u64 mem3 = pmm_alloc_low();
 	// pmm_free(mem2);
 	// pmm_free(mem3);
     // 

@@ -114,6 +114,8 @@ _start:
 	; save multiboot struct pointer before ebx gets used
 	mov [no_offset(mboot_struct_ptr)], ebx
 
+	jmp checks_complete
+
 	cmp eax, 0x36D76289
 	je is_multiboot
 	mov eax, NOT_MULTIBOOT

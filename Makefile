@@ -4,22 +4,23 @@ ASM = nasm
 ASM_FLAGS = -f elf64
 
 CC = x86_64-elf-gcc
-COMPILE_FLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -z max-page-size=0x1000 -mcmodel=kernel -masm=intel -mgeneral-regs-only -O2 -lgcc --debug -g -fno-pie -Wno-unused-parameter -Wno-unused-variable
+COMPILE_FLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -z max-page-size=0x1000 -mcmodel=kernel -masm=intel -mgeneral-regs-only -O2 -lgcc --debug -g -fno-pie
 LINK_FLAGS = -T link.ld -o iso/boot/os.bin -ffreestanding -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -O2 -nostdlib -lgcc -z max-page-size=0x1000 -no-pie
 
-QEMU = sudo qemu-system-x86_64
+QEMU = qemu-system-x86_64
 QEMU_FLAGS = -boot d \
 			 -cdrom iso/os.iso \
-			 # -d guest_errors,unimp \
+			 -d int,guest_errors,unimp \
 			 -D qemulog.txt \
-			 # -no-reboot \
+			 -no-reboot \
 			 -serial file:serial.out \
 			 -machine q35 \
 			 -m 4096M \
 			 -cpu qemu64 \
-			 -drive if=pflash,format=raw,unit=0,file=/usr/share/edk2-ovmf/x64/OVMF_CODE.fd,readonly=on \
-			 -drive if=pflash,format=raw,unit=1,file=/usr/share/edk2-ovmf/x64/OVMF_VARS.fd \
-			 -net none \
+			 -bios /usr/share/edk2-ovmf/x64/OVMF.fd
+			 # -drive if=pflash,format=raw,unit=0,file=/usr/share/edk2-ovmf/x64/OVMF_CODE.fd,readonly=on \
+			 # -drive if=pflash,format=raw,unit=1,file=/usr/share/edk2-ovmf/x64/OVMF_VARS.fd \
+			 # -net none \
 			 # -drive file=nvm.img,if=none,id=NVME1 \
 			 # -device nvme,serial=1234,drive=NVME1 \
 			 # -monitor stdio
