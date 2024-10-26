@@ -1,10 +1,10 @@
-OBJECTS = src/loader.o src/kmain.o src/const.o src/interrupt.o src/interrupts.o src/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/kmath.o src/pci/pci.o
+OBJECTS = src/loader.o src/kmain.o src/const.o src/interrupt.o src/interrupts.o src/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/kmath.o src/acpi/acpi.o
 
 ASM = nasm
 ASM_FLAGS = -f elf64
 
 CC = x86_64-elf-gcc
-COMPILE_FLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -z max-page-size=0x1000 -mcmodel=kernel -masm=intel -mgeneral-regs-only -O2 -lgcc --debug -g -fno-pie
+COMPILE_FLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -z max-page-size=0x1000 -mcmodel=kernel -masm=intel -mgeneral-regs-only -O2 -lgcc --debug -g -fno-pie -I gnu-efi/inc/
 LINK_FLAGS = -T link.ld -o iso/boot/os.bin -ffreestanding -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -O2 -nostdlib -lgcc -z max-page-size=0x1000 -no-pie
 
 QEMU = qemu-system-x86_64
@@ -32,6 +32,8 @@ QEMU_FLAGS = -boot d \
 	# --enable-kvm \
 	# -smp 2
 
+build: clean os.iso
+
 all: kernel.elf
 
 kernel: $(OBJECTS)
@@ -47,8 +49,6 @@ debug: clean os.iso
 run: clean os.iso
 	$(QEMU) $(QEMU_FLAGS)
 
-build: clean os.iso
-
 %.o: %.c
 	$(CC) $(COMPILE_FLAGS) $< -o $@
 
@@ -59,4 +59,7 @@ clean:
 	rm -rf iso/os.iso qemulog.txt serial.txt serial.out
 	# https://unix.stackexchange.com/a/116391
 	find src/ -name '*.o' -delete
+
+gen_bear:
+	bear -- make
 

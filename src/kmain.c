@@ -14,7 +14,7 @@
 #include "mem/vmalloc.h"
 #include "mem/kmalloc.h"
 
-#include "pci/pci.h"
+#include "acpi/acpi.h"
 
 extern u64 kernel_end;
 
@@ -72,11 +72,12 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	serial_info("announced mbi size 0x%x", multiboot_size);
 
 	u64 total_available_mem = 0;
+	EFI_SYSTEM_TABLE *efi_table;
 
 	struct multiboot_tag *tag = (struct multiboot_tag *) (mboot_addr + 8);
 	u8 *framebuffer_addr = 0;
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
-		serial_info("tag %u, Size 0x%x", tag->type, tag->size);
+		serial_info("tag %u, size 0x%x", tag->type, tag->size);
 		switch (tag->type) {
 			case MULTIBOOT_TAG_TYPE_CMDLINE:
 				serial_info("command line = %s", ((struct multiboot_tag_string *) tag)->string);
@@ -115,7 +116,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 						"    base_addr = 0x%x, length = 0x%x, type = %s, 0x%x",
 						mmap->addr,
 						mmap->len,
-						MULTIBOOT_ENTRY_TYPES[(unsigned) mmap->type],
+						mmap->type <= 5 ? MULTIBOOT_ENTRY_TYPES[(unsigned) mmap->type] : "???",
 						mmap
 					);
 
@@ -176,12 +177,18 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 				serial_info("framebuffer color type %u", color);
 				break;
 			}
+			case MULTIBOOT_TAG_TYPE_EFI64: {
+				struct multiboot_tag_efi64 *tag_efi = (struct multiboot_tag_efi64 *) tag;
+				serial_info("EFI table at 0x%x", tag_efi->pointer);
+				efi_table = (EFI_SYSTEM_TABLE *) ((u64) tag_efi->pointer + KERNEL_OFFSET);
+			}
 		}
 
 		// move on to next multiboot tag
 		// add seven then clear last 3 bits for 8 byte alignment
 		tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 	}
+
 	tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 	serial_info("total mbi size 0x%x", tag - mboot_addr);
 	pmm_set_total(total_available_mem);
@@ -190,7 +197,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
 		if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
 			multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
-			while((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
+			while ((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
 				if (mmap->type == MBOOT_MEM_AVAILABLE && mmap->addr + mmap->len > ((u64) &kernel_end - KERNEL_OFFSET))
 					pmm_add_block(u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET)), mmap->addr + mmap->len);
 				mmap = (multiboot_memory_map_t *) ((u64) mmap + ((struct multiboot_tag_mmap *) tag)->entry_size);
@@ -225,10 +232,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	vga_init(framebuffer_addr);
 	vga_clear();
 
-	// run_tests();
-	// vmm_log_status();
-
-	pci_enumerate_devices();
+	find_acpi(efi_table);
 
 	serial_info("setup ok");
 	vga_printf("setup ok\n");
