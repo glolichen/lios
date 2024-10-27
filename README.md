@@ -36,7 +36,7 @@ Sort of based on Linux.
  * [QEMU docs](https://www.qemu.org/docs/master/index.html)
  * [Multiboot2 specification](https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html)
  * [OSDev Wiki](https://wiki.osdev.org)
- * [ACPI specification](https://uefi.org/sites/default/files/resources/ACPI_6_2.pdf)
- * [UEFI specification](https://uefi.org/sites/default/files/resources/UEFI_Spec_2_10_Aug29.pdf)
+ * [ACPI specification](https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/index.html)
+ * [UEFI specification](https://uefi.org/specs/UEFI/2.10_A/index.html)
 
 (write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`)

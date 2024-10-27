@@ -460,11 +460,11 @@
       "-I",
       "gnu-efi/inc/",
       "-o",
-      "src/acpi/acpi.o",
-      "src/acpi/acpi.c"
+      "src/pcie/acpi.o",
+      "src/pcie/acpi.c"
     ],
     "directory": "/home/jayden/Desktop/Programs/OS",
-    "file": "/home/jayden/Desktop/Programs/OS/src/acpi/acpi.c",
-    "output": "/home/jayden/Desktop/Programs/OS/src/acpi/acpi.o"
+    "file": "/home/jayden/Desktop/Programs/OS/src/pcie/acpi.c",
+    "output": "/home/jayden/Desktop/Programs/OS/src/pcie/acpi.o"
   }
 ]

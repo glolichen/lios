@@ -14,7 +14,7 @@
 #include "mem/vmalloc.h"
 #include "mem/kmalloc.h"
 
-#include "acpi/acpi.h"
+#include "pcie/acpi.h"
 
 extern u64 kernel_end;
 
