@@ -64,6 +64,8 @@ bool is_same_guid(EFI_GUID *a, EFI_GUID *b) {
 	return a->Data1 == b->Data1 && a->Data2 == b->Data2 && a->Data3 == b->Data3;
 }
 
+void enumerate_bus(u64 addr, u8 bus);
+
 void find_acpi(EFI_SYSTEM_TABLE *efi_table) {
 	// https://uefi.org/specs/UEFI/2.10_A/04_EFI_System_Table.html#id6
 	// https://uefi.org/specs/UEFI/2.10_A/04_EFI_System_Table.html#industry-standard-configuration-tables
@@ -110,7 +112,59 @@ void find_acpi(EFI_SYSTEM_TABLE *efi_table) {
 	if (!mcfg)
 		panic("acpi: MCFG not found!");
 
-	serial_info("0x%x 0x%x", mcfg, mcfg->header.signature);
 	u32 mcfg_entries = (mcfg->header.length - sizeof(struct MCFG)) / 16;
-	serial_info("%u", mcfg_entries);
+	for (u32 i = 0; i < mcfg_entries; i++) {
+        struct MCFGEntry entry = mcfg->entries[i];
+        for (u32 bus = entry.start_pci; bus <= entry.end_pci; bus++) {
+            // enumerate_bus(entry.addr, bus);
+        }
+    }
+}
+
+u32 read_config_dword(u64 device_address, u16 offset) {
+	serial_info("addr: 0x%x", device_address, offset);
+    u32 *addr = (u32 *) (device_address + (u64) offset + KERNEL_OFFSET);
+    return *addr;
+}
+
+bool is_multi_function_device(u64 device_address) {
+    u8 header_type = (read_config_dword(device_address, 0x0C) >> 16) & 0xFF;
+    return (header_type & 0x80) != 0;
+}
+void process_device(uint64_t device_address, uint8_t bus, uint8_t device, uint8_t function) {
+    uint16_t vendor_id = read_config_dword(device_address, 0) & 0xFFFF;
+    uint16_t device_id = read_config_dword(device_address, 0) >> 16;
+    uint8_t class_code = read_config_dword(device_address, 0x08) >> 24;
+    uint8_t subclass = (read_config_dword(device_address, 0x08) >> 16) & 0xFF;
+
+    serial_info("PCIe Device: %02x:%02x.%x - Vendor: %04x, Device: %04x, Class: %02x, Subclass: %02x\n",
+           bus, device, function, vendor_id, device_id, class_code, subclass);
+
+    // Handle PCI-to-PCI bridges
+    if (class_code == 0x06 && subclass == 0x04) {
+		serial_info("skibidi");
+        // uint8_t secondary_bus = (read_config_dword(device_address, 0x18) >> 8) & 0xFF;
+        // enumerate_bus(base_address, secondary_bus);
+    }
+}
+
+void enumerate_bus(u64 addr, u8 bus) {
+    for (u8 device = 0; device < 32; device++) {
+        for (u8 function = 0; function < 8; function++) {
+            u64 device_address = addr + ((bus << 20) | (device << 15) | (function << 12));
+			serial_info("0x%x", 500);
+            u32 vendor_device = read_config_dword(device_address, 0);
+			serial_info("0x%x", 500);
+
+			serial_info("0x%x", vendor_device);
+            
+            if (vendor_device != 0xFFFFFFFF) {
+                process_device(device_address, bus, device, function);
+            }
+
+            if (function == 0 && !is_multi_function_device(device_address)) {
+                break;
+            }
+        }
+    }
 }
