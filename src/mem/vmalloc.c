@@ -48,7 +48,6 @@ void add_block(u32 pages) {
 	u32 bitmap = round_u32_div(block_total - 16, 8 * SECTION_SIZE + 1);
 	// round to nearest multiple of 8 (u64 is 8 bytes)
 	bitmap = (bitmap + 7) & ~7;
-	u32 data = block_total - 16 - bitmap;
 
 	struct HeapBitmapNode *addr = (struct HeapBitmapNode *) vmm_alloc(pages);
 	addr->next = 0;
@@ -177,7 +176,7 @@ void release_if_unused(struct HeapBitmapNode *prev, struct HeapBitmapNode *node)
 	if (prev->next != node)
 		panic("vmalloc: assertion failed!");
 
-	u32 total_size = node->total_size, bitmap_size = node->bitmap_size;
+	u32 bitmap_size = node->bitmap_size;
 	for (u32 i = 0; i < bitmap_size / 8; i++) {
 		// something is being used
 		if (node->mem[i])

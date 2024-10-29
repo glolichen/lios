@@ -33,14 +33,14 @@ void idt_set_entry(u8 index, u64 isr, u8 flags) {
 
 __attribute__((noreturn))
 void handle_exception(struct InterruptData *data) {
-	vga_printf(
-		"Exception 0x%x: %s, code %u\n",
+	serial_error(
+		"Exception 0x%x: %s, code %u",
 		data->interrupt_num,
 		EXCEPTIONS[data->interrupt_num],
 		data->error_code
 	);
-	serial_error(
-		"Exception 0x%x: %s, code %u",
+	vga_printf(
+		"Exception 0x%x: %s, code %u\n",
 		data->interrupt_num,
 		EXCEPTIONS[data->interrupt_num],
 		data->error_code
@@ -130,5 +130,5 @@ void interrupt_init() {
 
 	asm volatile("lidt %0; sti" :: "m"(idt_ptr));
 
-	serial_info("Interrupts enabled");
+	serial_info("interrupts: initialized");
 }

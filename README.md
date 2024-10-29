@@ -31,9 +31,12 @@ Sort of based on Linux.
 
 ## Sources
 
- * [OSDev Wiki](https://wiki.osdev.org)
  * [OSTEP book](https://pages.cs.wisc.edu/~remzi/OSTEP/)
  * [Intel](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html) and [AMD](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/40332.pdf) manuals
  * [QEMU docs](https://www.qemu.org/docs/master/index.html)
+ * [Multiboot2 specification](https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html)
+ * [OSDev Wiki](https://wiki.osdev.org)
+ * [ACPI specification](https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/index.html)
+ * [UEFI specification](https://uefi.org/specs/UEFI/2.10_A/index.html)
 
 (write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`)

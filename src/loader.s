@@ -2,7 +2,6 @@ global _start
 global mboot
 
 extern kmain
-extern test
 
 bits 32
 
@@ -14,19 +13,17 @@ section .text
 	MBOOT_HEADER_LENGTH equ no_offset(mboot_end) - no_offset(mboot)
 	MBOOT_CHECK equ 0x100000000 - (MBOOT_MAGIC + MBOOT_ARCH + MBOOT_HEADER_LENGTH)
 
-	NOT_MULTIBOOT db "Not multiboot2!"
-	NOT_MULTIBOOT_SIZE equ $-NOT_MULTIBOOT
-
-	NO_CPUID db "CPUID not available!"
-	NO_CPUID_SIZE equ $-NO_CPUID
-
-	NO_EXT_CPUID db "Extended CPUID not available!"
-	NO_EXT_CPUID_SIZE equ $-NO_EXT_CPUID
-
-	NO_LONG_MODE db "No long mode!"
-	NO_LONG_MODE_SIZE equ $-NO_LONG_MODE
-
-	FRAME_BUFFER equ 0xB8000
+	; NOT_MULTIBOOT db "Not multiboot2!"
+	; NOT_MULTIBOOT_SIZE equ $-NOT_MULTIBOOT
+	;
+	; NO_CPUID db "CPUID not available!"
+	; NO_CPUID_SIZE equ $-NO_CPUID
+	;
+	; NO_EXT_CPUID db "Extended CPUID not available!"
+	; NO_EXT_CPUID_SIZE equ $-NO_EXT_CPUID
+	;
+	; NO_LONG_MODE db "No long mode!"
+	; NO_LONG_MODE_SIZE equ $-NO_LONG_MODE
 
 mboot:
 	align 8
@@ -49,116 +46,75 @@ mboot:
 	dd 8
 mboot_end:
 
-; clear the "booting os" message
-clear_message:
-	; this is shit but it works
-	mov byte [FRAME_BUFFER], 32
-	mov byte [FRAME_BUFFER + 1], 7
-	mov byte [FRAME_BUFFER + 2], 32
-	mov byte [FRAME_BUFFER + 3], 7
-	mov byte [FRAME_BUFFER + 4], 32
-	mov byte [FRAME_BUFFER + 5], 7
-	mov byte [FRAME_BUFFER + 6], 32
-	mov byte [FRAME_BUFFER + 7], 7
-	mov byte [FRAME_BUFFER + 8], 32
-	mov byte [FRAME_BUFFER + 9], 7
-	mov byte [FRAME_BUFFER + 10], 32
-	mov byte [FRAME_BUFFER + 11], 7
-	mov byte [FRAME_BUFFER + 12], 32
-	mov byte [FRAME_BUFFER + 13], 7
-	mov byte [FRAME_BUFFER + 14], 32
-	mov byte [FRAME_BUFFER + 15], 7
-	mov byte [FRAME_BUFFER + 16], 32
-	mov byte [FRAME_BUFFER + 17], 7
-	mov byte [FRAME_BUFFER + 18], 32
-	mov byte [FRAME_BUFFER + 19], 7
-	mov byte [FRAME_BUFFER + 20], 32
-	mov byte [FRAME_BUFFER + 21], 7
-	mov byte [FRAME_BUFFER + 22], 32
-	mov byte [FRAME_BUFFER + 23], 7
-	mov byte [FRAME_BUFFER + 24], 32
-	mov byte [FRAME_BUFFER + 25], 7
-	mov byte [FRAME_BUFFER + 26], 32
-	mov byte [FRAME_BUFFER + 27], 7
-	mov byte [FRAME_BUFFER + 28], 32
-	mov byte [FRAME_BUFFER + 29], 7
-	mov byte [FRAME_BUFFER + 30], 32
-	mov byte [FRAME_BUFFER + 31], 7
-	ret
-
-; uses eax, ebx, ecx, edx; eax: string, ebx: length
-error:
-	dec ebx
-	add ebx, ebx
-	add ebx, FRAME_BUFFER
-	mov edx, FRAME_BUFFER
-error_loop:
-	mov cl, [eax]
-	mov byte [edx], cl
-	mov byte [edx + 1], 7
-	cmp edx, ebx
-	je error_end
-	inc edx
-	inc edx
-	inc eax
-	jmp error_loop
-error_end:
-	jmp error_end
-
-
 _start:
+	mov edx, 100
+draw_loop:
+	mov byte [0xA0000 + edx], 255
+	mov byte [0xA0000 + 4096 + edx], 255
+	mov byte [0xA0000 + 2 * 4096 + edx], 255
+	mov byte [0xA0000 + 3 * 4096 + edx], 255
+	mov byte [0xA0000 + 4 * 4096 + edx], 255
+	mov byte [0xA0000 + 5 * 4096 + edx], 255
+	mov byte [0xA0000 + 6 * 4096 + edx], 255
+	dec edx
+	cmp edx, 0
+	jnz draw_loop
+
 	cli
+	jmp $
 
 	mov esp, no_offset(stack_bottom)
 	mov ebp, no_offset(stack_bottom)
 	; save multiboot struct pointer before ebx gets used
 	mov [no_offset(mboot_struct_ptr)], ebx
 
-	cmp eax, 0x36D76289
-	je is_multiboot
-	mov eax, NOT_MULTIBOOT
-	mov ebx, NOT_MULTIBOOT_SIZE
-	call error
-
-is_multiboot:
-	; https://wiki.osdev.org/CPUID#Checking_CPUID_availability
-	; https://wiki.osdev.org/Setting_Up_Long_Mode
-	; check if cpu has cpuid
-	pushfd
-	pushfd
-	xor dword [esp], 0x200000
-	popfd
-	pushfd
-	pop eax
-	xor eax, [esp]
-	popfd
-	and eax, 0x200000
-	cmp eax, 0
-	jne ext_cpuid_check
-	mov eax, NO_CPUID
-	mov ebx, NO_CPUID_SIZE
-	call error
-
-	; check for extended function cpuid
-ext_cpuid_check:
-	mov eax, 0x80000000
-	cpuid
-	; max supported less than 0x80000001 = bad
-	cmp eax, 0x80000001
-	jnb check_long_mode
-	mov eax, NO_EXT_CPUID
-	mov ebx, NO_EXT_CPUID_SIZE
-	call error
-
-	; check for long mode
-check_long_mode:
-	mov eax, 0x80000001
-	cpuid
-	test edx, 1 << 29
-	jnz checks_complete
-	mov eax, NO_LONG_MODE
-	mov ebx, NO_LONG_MODE_SIZE
-	call error
+; 	jmp checks_complete
+;
+; 	cmp eax, 0x36D76289
+; 	je is_multiboot
+; 	mov eax, NOT_MULTIBOOT
+; 	mov ebx, NOT_MULTIBOOT_SIZE
+; 	call error
+;
+; is_multiboot:
+; 	; https://wiki.osdev.org/CPUID#Checking_CPUID_availability
+; 	; https://wiki.osdev.org/Setting_Up_Long_Mode
+; 	; check if cpu has cpuid
+; 	pushfd
+; 	pushfd
+; 	xor dword [esp], 0x200000
+; 	popfd
+; 	pushfd
+; 	pop eax
+; 	xor eax, [esp]
+; 	popfd
+; 	and eax, 0x200000
+; 	cmp eax, 0
+; 	jne ext_cpuid_check
+; 	mov eax, NO_CPUID
+; 	mov ebx, NO_CPUID_SIZE
+; 	call error
+;
+; 	; check for extended function cpuid
+; ext_cpuid_check:
+; 	mov eax, 0x80000000
+; 	cpuid
+; 	; max supported less than 0x80000001 = bad
+; 	cmp eax, 0x80000001
+; 	jnb check_long_mode
+; 	mov eax, NO_EXT_CPUID
+; 	mov ebx, NO_EXT_CPUID_SIZE
+; 	call error
+;
+; 	; check for long mode
+; check_long_mode:
+; 	mov eax, 0x80000001
+; 	cpuid
+; 	test edx, 1 << 29
+; 	jnz checks_complete
+; 	mov eax, NO_LONG_MODE
+; 	mov ebx, NO_LONG_MODE_SIZE
+; 	call error
 
 checks_complete:
 	; enable PAE

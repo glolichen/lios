@@ -28,8 +28,8 @@ struct VirtAllocatedNode *alloc_head;
 
 void vmm_init() {
 	u64 free_virt_start = 0xFFFFF00000000000;
-	u64 vmm_list_pf = pmm_alloc_low();
-	u64 alloc_list_pf = pmm_alloc_low();
+	u64 vmm_list_pf = pmm_alloc_high();
+	u64 alloc_list_pf = pmm_alloc_high();
 
 	page_map(free_virt_start, alloc_list_pf);
 	page_map(free_virt_start + PAGE_SIZE, vmm_list_pf);
@@ -141,7 +141,7 @@ void *vmm_alloc(u32 pages) {
 			serial_info("vmm: request physical page frames");
 			for (u32 i = 0; i < pages; i++) {
 				u64 virt = start + i * PAGE_SIZE;
-				PhysicalAddress page_frame = pmm_alloc_low();
+				PhysicalAddress page_frame = pmm_alloc_high();
 				page_unmap(virt);
 				page_map(virt, page_frame);
 			}

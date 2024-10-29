@@ -2,9 +2,10 @@ bochslog.txt
 qemulog.txt
 *.o
 *.iso
-iso/*
-.vscode/*
+iso/
 serial.out
 libgcc.a
 bx_enh_dbg.ini
 a.out
+.cache/
+gnu-efi/

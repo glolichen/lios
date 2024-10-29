@@ -16,6 +16,12 @@ Storage and filesystem! Unfortunately there's a list of very confusing and hard 
 3. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
 4. filesystem (such as FAT or ext2)
 
+### Nasty bug
+
+There is a nasty physical memory allocation bug. In the past we assumed that the available physical memory is contiguous and starts at the end of the kernel. This is of course not the case as there are a bunch of random UEFI, architecture or other sections fragmenting our available memory. Fixed by rewriting how the PMM is initialized (by adding "blocks" of available memory instead of all at once).
+
+Implemented in `9a0aebe`.
+
 ## VGA graphical mode
 
 In the past, we used VGA text mode. This was a nice system. We could just write an ASCII code to a certain memory offset and that letter is displayed automatically.
@@ -32,7 +38,7 @@ Steps:
 2. use [this](https://github.com/talamus/rw-psf) tool to convert PSF to plain text
 3. use script (util/psftxt2ints.cpp) to convert plain text to integers
 
-Implemented in `1b32127`.
+Implemented in `1b32127` and `45ee8c1`.
 
 ## Linux-esque memory allocation scheme
 

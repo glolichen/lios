@@ -18,7 +18,6 @@ void vga_init(u8 *addr) {
 
 	vga_chars = (u8 *) vmalloc(VGA_ROWS * VGA_COLS);
 
-	pmm_clear_blocks((u64) addr, (u64) addr + FRAMEBUFFER_SIZE);
 	u32 pages_needed = ceil_u32_div(FRAMEBUFFER_SIZE, PAGE_SIZE);
 	u64 virt = 0xFFFF900000000000;
 	for (u32 i = 0; i < pages_needed; i++)
