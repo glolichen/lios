@@ -63,7 +63,7 @@ void pmm_add_block(u64 start, u64 end) {
 		pmm_add_block(cur, end);
 }
 
-void pmm_init_final() {
+void pmm_init_final(void) {
 	struct PhysFreeListNode *cur = pmm_low;
 	while (cur != 0) {
 		if (cur->next->addr >= TWO_GB) {
@@ -75,7 +75,7 @@ void pmm_init_final() {
 	}
 }
 
-PhysicalAddress pmm_alloc_low() {
+PhysicalAddress pmm_alloc_low(void) {
 	if (pmm_low == 0)
 		panic("pmm: out of memory!");
 
@@ -92,7 +92,7 @@ PhysicalAddress pmm_alloc_low() {
 	return next;
 }
 
-PhysicalAddress pmm_alloc_high() {
+PhysicalAddress pmm_alloc_high(void) {
 	// if there is no user memory left then allocate something <2GiB
 	if (pmm_high == 0) {
 		serial_info("pmm: kernel (<2GiB) mem allocate for user below");
@@ -169,7 +169,7 @@ void pmm_clear_blocks(u64 start, u64 end) {
 	start_node->next = end_node->next;
 }
 
-void pmm_log_status() {
+void pmm_log_status(void) {
 	struct PhysFreeListNode *cur;
 	serial_debug("pmm: printing status");
 

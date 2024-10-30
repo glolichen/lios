@@ -2,6 +2,7 @@
 #include "interrupt.h"
 #include "multiboot2.h"
 #include "testing.h"
+#include "panic.h"
 #include "kmath.h"
 
 #include "io/serial.h"
@@ -72,7 +73,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	serial_info("announced mbi size 0x%x", multiboot_size);
 
 	u64 total_available_mem = 0;
-	EFI_SYSTEM_TABLE *efi_table;
+	EFI_SYSTEM_TABLE *efi_table = 0;
 
 	struct multiboot_tag *tag = (struct multiboot_tag *) (mboot_addr + 8);
 	u8 *framebuffer_addr = 0;
@@ -221,20 +222,25 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	pml4 = (u64 *) ((u64) pml4 + KERNEL_OFFSET);
 	page_init(pml4);
 
-	pmm_clear_blocks((u64) framebuffer_addr, (u64) framebuffer_addr + FRAMEBUFFER_SIZE);
-
-	vmm_init();
-	vmm_log_status();
-
-	vmalloc_init();
-	vmalloc_log_status();
+	// pmm_clear_blocks((u64) framebuffer_addr, (u64) framebuffer_addr + FRAMEBUFFER_SIZE);
+	//
+	// vmm_init();
+	// vmm_log_status();
+	//
+	// vmalloc_init();
+	// vmalloc_log_status();
 
 	vga_init(framebuffer_addr);
 	vga_clear();
 
-	find_acpi(efi_table);
+	for (u32 i = 0; i < 50; i++)
+		vga_putpixel(i, i, 0, 255, 0);
 
-	serial_info("setup ok");
-	vga_printf("setup ok\n");
+	// if (!efi_table)
+	// 	panic("no EFI system table found!");
+	// find_acpi(efi_table);
+	//
+	// serial_info("setup ok");
+	// vga_printf("setup ok\n");
 }
 

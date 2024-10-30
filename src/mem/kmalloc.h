@@ -3,7 +3,7 @@
 
 #include "../const.h"
 
-u64 kmalloc_page();
+u64 kmalloc_page(void);
 void kfree_page(u64 addr);
 
 #endif

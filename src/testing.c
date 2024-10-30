@@ -6,7 +6,7 @@
 #include "mem/page.h"
 #include "mem/pmm.h"
 
-void run_tests() {
+void run_tests(void) {
 	// serial_info("===== TESTING BELOW =====");
 	// u64 *kmem1 = (u64 *) kmalloc_page();
 	// u64 *kmem2 = (u64 *) kmalloc_page();

@@ -27,7 +27,7 @@ bool serial_fifo_empty(u16 port) {
 	return (inb(GET_SERIAL_LINE_STATUS_PORT(port)) & (1 << 5));
 }
 
-void serial_init() {
+void serial_init(void) {
 	serial_configure_buffers(SERIAL_COM1_BASE);
 	serial_configure_line(SERIAL_COM1_BASE);
 	serial_configure_modem(SERIAL_COM1_BASE);

@@ -47,21 +47,23 @@ mboot:
 mboot_end:
 
 _start:
-	mov edx, 100
-draw_loop:
-	mov byte [0xA0000 + edx], 255
-	mov byte [0xA0000 + 4096 + edx], 255
-	mov byte [0xA0000 + 2 * 4096 + edx], 255
-	mov byte [0xA0000 + 3 * 4096 + edx], 255
-	mov byte [0xA0000 + 4 * 4096 + edx], 255
-	mov byte [0xA0000 + 5 * 4096 + edx], 255
-	mov byte [0xA0000 + 6 * 4096 + edx], 255
-	dec edx
-	cmp edx, 0
-	jnz draw_loop
+; 	mov edx, 100
+; draw_loop:
+; 	mov byte [0xA0000 + edx], 255
+; 	mov byte [0xA0000 + 4096 + edx], 255
+; 	mov byte [0xA0000 + 2 * 4096 + edx], 255
+; 	mov byte [0xA0000 + 3 * 4096 + edx], 255
+; 	mov byte [0xA0000 + 4 * 4096 + edx], 255
+; 	mov byte [0xA0000 + 5 * 4096 + edx], 255
+; 	mov byte [0xA0000 + 6 * 4096 + edx], 255
+; 	dec edx
+; 	cmp edx, 0
+; 	jnz draw_loop
+;
+; 	cli
+; 	jmp $
 
 	cli
-	jmp $
 
 	mov esp, no_offset(stack_bottom)
 	mov ebp, no_offset(stack_bottom)

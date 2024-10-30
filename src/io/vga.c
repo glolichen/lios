@@ -16,7 +16,7 @@ void vga_init(u8 *addr) {
 	if (!addr)
 		panic("vga: framebuffer init: no frame buffer tag!");
 
-	vga_chars = (u8 *) vmalloc(VGA_ROWS * VGA_COLS);
+	// vga_chars = (u8 *) vmalloc(VGA_ROWS * VGA_COLS);
 
 	u32 pages_needed = ceil_u32_div(FRAMEBUFFER_SIZE, PAGE_SIZE);
 	u64 virt = 0xFFFF900000000000;
@@ -29,7 +29,7 @@ void vga_init(u8 *addr) {
 	cur_row = 0, cur_col = 0;
 }
 
-void putpixel(u32 x, u32 y, u8 red, u8 green, u8 blue) {
+void vga_putpixel(u32 x, u32 y, u8 red, u8 green, u8 blue) {
 	u32 location = y * 4096 + x * 4;
 	vga_virt[location] = blue; // blue
 	vga_virt[location + 1] = green; // green
@@ -42,10 +42,10 @@ void draw_char(u32 row, u32 col, char c) {
 	for (u32 i = 0; i < 8; i++) {
 		for (u32 j = 0; j < 8; j++) {
 			color = QUERY_BIT(a, i * 8 + j) ? 183 : 0;
-			putpixel(x + j, y + i, color, color, color);
+			vga_putpixel(x + j, y + i, color, color, color);
 
 			color = QUERY_BIT(b, i * 8 + j) ? 183 : 0;
-			putpixel(x + j, y + i + 8, color, color, color);
+			vga_putpixel(x + j, y + i + 8, color, color, color);
 		}
 	}
 
@@ -55,7 +55,7 @@ u32 get_pos(u32 row, u32 col) {
 	return row * VGA_COLS + col;
 }
 
-void vga_newline() {
+void vga_newline(void) {
 	cur_col = 0;
 	if (++cur_row < VGA_ROWS)
 		return;
@@ -70,8 +70,10 @@ void vga_newline() {
 				draw_char(i, j, vga_chars[line]);
 		}
 	}
-	for (u32 j = 0; j < VGA_COLS; j++)
+	for (u32 j = 0; j < VGA_COLS; j++) {
+		vga_chars[get_pos(cur_row, j)] = ' ';
 		draw_char(cur_row, j, ' ');
+	}
 }
 
 void vga_putchar(char c) {
@@ -87,10 +89,10 @@ void vga_putchar(char c) {
 		vga_newline();
 }
 
-void vga_clear() {
+void vga_clear(void) {
 	for (u32 i = 0; i < 1024 ; i++) {
 		for (u32 j = 0; j < 768; j++)
-			putpixel(i, j, 0, 0, 0);
+			vga_putpixel(i, j, 0, 0, 0);
 	}
 }
 

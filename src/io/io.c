@@ -9,6 +9,6 @@ u8 inb(u16 port) {
 void outb(u16 port, u8 data) {
 	asm volatile("out %w0, %b1" :: "Nd"(port), "a"(data));
 }
-void io_wait() {
+void io_wait(void) {
 	outb(0x80, 0);
 }
