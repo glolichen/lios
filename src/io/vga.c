@@ -9,16 +9,20 @@
 
 #define QUERY_BIT(num, pos) ((num >> (pos)) & ((u64) 1))
 
+u32 pixel_width, pixel_height, vga_pitch, char_width, char_height;
+
 u32 cur_row, cur_col;
 u8 *vga_virt, *vga_chars;
 
-void vga_init(u8 *addr) {
+void vga_init(u8 *addr, u32 width, u32 height, u32 pitch) {
+	pixel_width = width, pixel_height = height, vga_pitch = pitch;
+
 	if (!addr)
 		panic("vga: framebuffer init: no frame buffer tag!");
 
-	// vga_chars = (u8 *) vmalloc(VGA_ROWS * VGA_COLS);
+	vga_chars = (u8 *) vmalloc((pixel_height / 16) * (pixel_width / 8));
 
-	u32 pages_needed = ceil_u32_div(FRAMEBUFFER_SIZE, PAGE_SIZE);
+	u32 pages_needed = ceil_u32_div(vga_pitch * pixel_height, PAGE_SIZE);
 	u64 virt = 0xFFFF900000000000;
 	for (u32 i = 0; i < pages_needed; i++)
 		page_map(virt + i * PAGE_SIZE, (PhysicalAddress) addr + i * PAGE_SIZE);
@@ -30,7 +34,7 @@ void vga_init(u8 *addr) {
 }
 
 void vga_putpixel(u32 x, u32 y, u8 red, u8 green, u8 blue) {
-	u32 location = y * 4096 + x * 4;
+	u32 location = y * vga_pitch + x * 4;
 	vga_virt[location] = blue; // blue
 	vga_virt[location + 1] = green; // green
 	vga_virt[location + 2] = red; // red
@@ -52,17 +56,17 @@ void draw_char(u32 row, u32 col, char c) {
 }
 
 u32 get_pos(u32 row, u32 col) {
-	return row * VGA_COLS + col;
+	return row * (pixel_width / 8) + col;
 }
 
 void vga_newline(void) {
 	cur_col = 0;
-	if (++cur_row < VGA_ROWS)
+	if (++cur_row < (pixel_height / 16))
 		return;
 
 	cur_row--;
-	for (u32 i = 0; i < VGA_ROWS - 1; i++) {
-		for (u32 j = 0; j < VGA_COLS; j++) {
+	for (u32 i = 0; i < (pixel_height / 16) - 1; i++) {
+		for (u32 j = 0; j < (pixel_width / 8); j++) {
 			u32 line = get_pos(i, j);
 			u32 next = get_pos(i + 1, j);
 			vga_chars[line] = vga_chars[next];
@@ -70,7 +74,7 @@ void vga_newline(void) {
 				draw_char(i, j, vga_chars[line]);
 		}
 	}
-	for (u32 j = 0; j < VGA_COLS; j++) {
+	for (u32 j = 0; j < (pixel_width / 8); j++) {
 		vga_chars[get_pos(cur_row, j)] = ' ';
 		draw_char(cur_row, j, ' ');
 	}
@@ -85,13 +89,13 @@ void vga_putchar(char c) {
 	vga_chars[get_pos(cur_row, cur_col)] = c;
 	draw_char(cur_row, cur_col, c);
 
-	if (++cur_col >= VGA_COLS)
+	if (++cur_col >= (pixel_width / 8))
 		vga_newline();
 }
 
 void vga_clear(void) {
-	for (u32 i = 0; i < 1024 ; i++) {
-		for (u32 j = 0; j < 768; j++)
+	for (u32 i = 0; i < pixel_width ; i++) {
+		for (u32 j = 0; j < pixel_height; j++)
 			vga_putpixel(i, j, 0, 0, 0);
 	}
 }

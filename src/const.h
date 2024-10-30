@@ -42,8 +42,6 @@ enum FBColor {
 	WHITE = 15
 };
 
-#define VGA_ROWS (768 / 16)
-#define VGA_COLS (1024 / 8)
 #define FB_COMMAND_PORT 0x3D4
 #define FB_DATA_PORT 0x3D5
 #define FB_COMMAND_LOW_BYTE_COMMAND 14
@@ -56,7 +54,6 @@ enum FBColor {
 #define SERIAL_LINE_ENABLE_DLAB 0x80
 
 #define FB_ADDRESS (KERNEL_OFFSET + 0xB8000)
-#define FRAMEBUFFER_SIZE (1024 * 768 * 4)
 
 #define PICM 0x20
 #define PICS 0xA0
