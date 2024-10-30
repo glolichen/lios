@@ -5,6 +5,6 @@
 
 u8 inb(u16 port);
 void outb(u16 port, u8 data);
-void io_wait();
+void io_wait(void);
 
 #endif

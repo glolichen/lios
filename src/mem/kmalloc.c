@@ -1,7 +1,7 @@
 #include "pmm.h"
 #include "../const.h"
 
-u64 kmalloc_page() {
+u64 kmalloc_page(void) {
 	return pmm_alloc_low() + KERNEL_OFFSET;
 }
 

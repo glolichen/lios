@@ -71,7 +71,7 @@ void add_block(u32 pages) {
 			 addr, block_total, pages);
 }
 
-void vmalloc_init() {
+void vmalloc_init(void) {
 	add_block(1);
 }
 
@@ -218,7 +218,7 @@ void vfree(void *mem) {
 	panic("kfree: something is very wrong");
 }
 
-void vmalloc_log_status() {
+void vmalloc_log_status(void) {
 	serial_debug("vmalloc: printing status");
 	struct HeapBitmapNode *cur = heap_head;
 	while (cur != 0) {

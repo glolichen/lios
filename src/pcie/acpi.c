@@ -115,9 +115,10 @@ void find_acpi(EFI_SYSTEM_TABLE *efi_table) {
 	u32 mcfg_entries = (mcfg->header.length - sizeof(struct MCFG)) / 16;
 	for (u32 i = 0; i < mcfg_entries; i++) {
         struct MCFGEntry entry = mcfg->entries[i];
-        for (u32 bus = entry.start_pci; bus <= entry.end_pci; bus++) {
-            // enumerate_bus(entry.addr, bus);
-        }
+		serial_info("entry: 0x%x", entry.addr);
+        // for (u32 bus = entry.start_pci; bus <= entry.end_pci; bus++) {
+        //     // enumerate_bus(entry.addr, bus);
+        // }
     }
 }
 

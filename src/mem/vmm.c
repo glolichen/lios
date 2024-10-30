@@ -26,7 +26,7 @@ struct VirtAllocatedNode {
 struct VirtFreeListNode *vmm_head = 0, *vmm_tail = 0;
 struct VirtAllocatedNode *alloc_head;
 
-void vmm_init() {
+void vmm_init(void) {
 	u64 free_virt_start = 0xFFFFF00000000000;
 	u64 vmm_list_pf = pmm_alloc_high();
 	u64 alloc_list_pf = pmm_alloc_high();
@@ -245,7 +245,7 @@ void vmm_free(void *mem) {
 	}
 }
 
-void vmm_log_status() {
+void vmm_log_status(void) {
 	serial_debug("vmm: printing status");
 	u32 vmm_empty_node = 0, vmm_node_count = 0;
 	struct VirtFreeListNode *vmm_cur = vmm_head;

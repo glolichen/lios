@@ -4,7 +4,9 @@ ASM = nasm
 ASM_FLAGS = -f elf64
 
 CC = x86_64-elf-gcc
-COMPILE_FLAGS = -ffreestanding -mno-red-zone -Wall -Wextra -Wpedantic -c -z max-page-size=0x1000 -mcmodel=kernel -masm=intel -mgeneral-regs-only -O2 -lgcc --debug -g -fno-pie -I gnu-efi/inc/
+COMPILE_FLAGS = -ffreestanding -mno-red-zone \
+				-Wno-variadic-macros -W -Wpedantic -Wextra -Wall -Wcast-align -Wcast-qual -Wstrict-aliasing=2 -Wframe-larger-than=32768 -Wno-strict-overflow -Wsync-nand -Wtrampolines -Wsign-compare -Werror=float-equal -Werror=missing-braces -Werror=init-self -Werror=logical-op -Werror=write-strings -Werror=address -Werror=array-bounds -Werror=char-subscripts -Werror=enum-compare -Werror=implicit-int -Werror=empty-body -Werror=main -Werror=aggressive-loop-optimizations -Werror=nonnull -Werror=parentheses -Werror=pointer-sign -Werror=return-type -Werror=sequence-point -Werror=uninitialized -Werror=volatile-register-var -Werror=ignored-qualifiers -Werror=missing-parameter-type -Werror=old-style-declaration -Wno-error=maybe-uninitialized -Wno-unused-function -Wodr -Wformat-signedness -Wsuggest-final-types -Wsuggest-final-methods -Wno-ignored-attributes -Wno-missing-field-initializers -Wshift-overflow=2 -Wduplicated-cond -Wduplicated-branches -Werror=restrict -Wdouble-promotion -Wformat=2 -Wstrict-prototypes \
+				-c -z max-page-size=0x1000 -mcmodel=kernel -masm=intel -mgeneral-regs-only -O2 -lgcc --debug -g -fno-pie -I gnu-efi/inc/
 LINK_FLAGS = -T link.ld -o iso/boot/os.bin -ffreestanding -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -O2 -nostdlib -lgcc -z max-page-size=0x1000 -no-pie
 
 QEMU = qemu-system-x86_64
@@ -17,13 +19,8 @@ QEMU_FLAGS = -boot d \
 			 -machine q35 \
 			 -m 4096M \
 			 -cpu qemu64 \
-			 -bios /usr/share/edk2-ovmf/x64/OVMF.fd
-			 # -drive if=pflash,format=raw,unit=0,file=/usr/share/edk2-ovmf/x64/OVMF_CODE.fd,readonly=on \
-			 # -drive if=pflash,format=raw,unit=1,file=/usr/share/edk2-ovmf/x64/OVMF_VARS.fd \
-			 # -net none \
-			 # -drive file=nvm.img,if=none,id=NVME1 \
-			 # -device nvme,serial=1234,drive=NVME1 \
-			 # -monitor stdio
+			 -bios /usr/share/edk2-ovmf/x64/OVMF.fd \
+			 -monitor stdio
 
 # qemu-system-x86_64 -m 2048 \
 	# -hda ./vdisk/16GB.img \
@@ -55,9 +52,9 @@ run: clean os.iso
 %.o: %.s
 	$(ASM) $(ASM_FLAGS) $< -o $@
 
+# https://unix.stackexchange.com/a/116391
 clean:
 	rm -rf iso/os.iso qemulog.txt serial.txt serial.out
-	# https://unix.stackexchange.com/a/116391
 	find src/ -name '*.o' -delete
 
 gen_bear:

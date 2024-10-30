@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "../const.h"
 
-void serial_init();
+void serial_init(void);
 void serial_putchar(char c);
 
 #endif
