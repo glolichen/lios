@@ -152,6 +152,11 @@ u32 printf(Destination dest, const char *format, va_list *arg) {
 }
 
 u32 vga_printf(const char *format, ...) {
+	if (!vga_is_initialized()) {
+		serial_warn("output: print to vga before initialization");
+		return 0;
+	}
+
 	va_list arg;
 	va_start(arg, format);
 	u32 length = printf(FRAME_BUFFER, format, &arg);

@@ -16,7 +16,18 @@ Storage and filesystem! Unfortunately there's a list of very confusing and hard 
 3. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
 4. filesystem (such as FAT or ext2)
 
-### Nasty bug
+## Problems with real harwdare
+
+I had some problems booting on real hardware which I asked about on the osdev forums [here](https://forum.osdev.org/viewtopic.php?p=349986). There were a number of serious problems...
+
+ * Stack pointer (`esp`/`rsp`) should point to the top of stack not the bottom.
+ * Linked list created in `pmm.c` is not terminated with a zero, and in case the amount of physical memory is less than 2GB it will attempt to dereference some uninitialized garbage which will cause either a page fault or general protection fault.
+ * `[page structure]_set_addr` in `page.c` does not clear/zero the address before setting the new one.
+ * When allocating a new page structure, that memory/page is not initialized, which may lead to a nonpresent structure being read as present. I made a function called `kcalloc_page` which initializes it to zero and use this for creating new page structures instead.
+
+As a result, we can now draw a line in real hardware!
+
+## Redesigned page frame allocation
 
 There is a nasty physical memory allocation bug. In the past we assumed that the available physical memory is contiguous and starts at the end of the kernel. This is of course not the case as there are a bunch of random UEFI, architecture or other sections fragmenting our available memory. Fixed by rewriting how the PMM is initialized (by adding "blocks" of available memory instead of all at once).
 

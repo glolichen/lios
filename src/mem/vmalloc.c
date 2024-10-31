@@ -168,6 +168,13 @@ void *vmalloc(u64 size) {
 	return vmalloc(size);
 }
 
+void *vcalloc(u64 size) {
+	u8 *mem = (u8 *) vmalloc(size);
+	for (u64 i = 0; i < size; i++)
+		mem[i] = 0;
+	return (void *) mem;
+}
+
 void release_if_unused(struct HeapBitmapNode *prev, struct HeapBitmapNode *node) {
 	// then the node is head. do not release the head
 	if (prev == node)

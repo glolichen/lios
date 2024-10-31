@@ -20,7 +20,7 @@ void vga_init(u8 *addr, u32 width, u32 height, u32 pitch) {
 	if (!addr)
 		panic("vga: framebuffer init: no frame buffer tag!");
 
-	vga_chars = (u8 *) vmalloc((pixel_height / 16) * (pixel_width / 8));
+	vga_chars = (u8 *) vcalloc((pixel_height / 16) * (pixel_width / 8));
 
 	u32 pages_needed = ceil_u32_div(vga_pitch * pixel_height, PAGE_SIZE);
 	u64 virt = 0xFFFF900000000000;
@@ -81,6 +81,11 @@ void vga_newline(void) {
 }
 
 void vga_putchar(char c) {
+	if (vga_chars == 0) {
+		serial_warn("vga: putchar before initialization");
+		return;
+	}
+
 	if (c == '\n') {
 		vga_newline();
 		return;
@@ -100,3 +105,6 @@ void vga_clear(void) {
 	}
 }
 
+bool vga_is_initialized(void) {
+	return vga_chars != 0;
+}

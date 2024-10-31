@@ -47,6 +47,7 @@ void pml4e_clear_addr(PML4E *pml4e) {
 	*pml4e &= 0xFFF;
 }
 void pml4e_set_addr(PML4E *pml4e, PhysicalAddress addr) {
+	*pml4e &= ~0xFFFFFFFFFF000;
 	*pml4e |= addr & 0xFFFFFFFFFF000;
 }
 
@@ -67,6 +68,7 @@ void pdpe_clear_addr(PDPE *pdpe) {
 	*pdpe &= 0xFFF;
 }
 void pdpe_set_addr(PDPE *pdpe, PhysicalAddress addr) {
+	*pdpe &= ~0xFFFFFFFFFF000;
 	*pdpe |= addr & 0xFFFFFFFFFF000;
 }
 
@@ -87,6 +89,7 @@ void pde_clear_addr(PDE *pde) {
 	*pde &= 0xFFF;
 }
 void pde_set_addr(PDE *pde, PhysicalAddress addr) {
+	*pde &= ~0xFFFFFFFFFF000;
 	*pde |= addr & 0xFFFFFFFFFF000;
 }
 
@@ -107,6 +110,7 @@ void pte_clear_addr(PTE *pte) {
 	*pte &= 0xFFF;
 }
 void pte_set_addr(PTE *pte, PhysicalAddress addr) {
+	*pte &= ~0xFFFFFFFFFF000;
 	*pte |= addr & 0xFFFFFFFFFF000;
 }
 
@@ -138,6 +142,8 @@ PhysicalAddress page_virt_to_phys_addr(u64 virt) {
 }
 
 void page_map(u64 virt, PhysicalAddress phys) {
+	serial_info("page: attempt map 0x%x -> 0x%x", virt, phys);
+
 	u64 pml4e = virt_addr_get_pml4e(virt);
 	u64 pdpe = virt_addr_get_pdpe(virt);
 	u64 pde = virt_addr_get_pde(virt);
@@ -145,8 +151,7 @@ void page_map(u64 virt, PhysicalAddress phys) {
 
 	PDPT *pdpt_addr = pml4e_get_addr(&pml4_addr->table[pml4e]);
 	if (!pml4e_query_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_PRESENT)) {
-		u64 allocated_pdpt_addr = kmalloc_page();
-		serial_info("page: no pdpt present, created new at 0x%x", allocated_pdpt_addr);
+		u64 allocated_pdpt_addr = kcalloc_page();
 		pml4e_set_addr(&pml4_addr->table[pml4e], allocated_pdpt_addr - KERNEL_OFFSET);
 		pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_PRESENT);
 		pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_WRITABLE);
@@ -157,8 +162,7 @@ void page_map(u64 virt, PhysicalAddress phys) {
 
 	PDT *pdt_addr = pdpe_get_addr(&pdpt_addr->table[pdpe]);
 	if (!pdpe_query_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_PRESENT)) {
-		u64 allocated_pdt_addr = kmalloc_page();
-		serial_info("page: no pdt present, created new at 0x%x", allocated_pdt_addr);
+		u64 allocated_pdt_addr = kcalloc_page();
 		pdpe_set_addr(&pdpt_addr->table[pdpe], allocated_pdt_addr - KERNEL_OFFSET);
 		pdpe_set_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_PRESENT);
 		pdpe_set_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_WRITABLE);
@@ -169,8 +173,7 @@ void page_map(u64 virt, PhysicalAddress phys) {
 
 	PT *pt_addr = pde_get_addr(&pdt_addr->table[pde]);
 	if (!pde_query_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_PRESENT)) {
-		u64 allocated_pt_addr = kmalloc_page();
-		serial_info("page: no page table present, created new at 0x%x", allocated_pt_addr);
+		u64 allocated_pt_addr = kcalloc_page();
 		pde_set_addr(&pdt_addr->table[pde], allocated_pt_addr - KERNEL_OFFSET);
 		pde_set_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_PRESENT);
 		pde_set_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_WRITABLE);

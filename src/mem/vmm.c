@@ -60,6 +60,8 @@ void vmm_init(void) {
 		alloc_cur->start = 0;
 		alloc_cur->size = 0;
 	}
+	alloc_cur->next = 0;
+
 	serial_info("vmm: created alloc list nodes, starting 0x%x, ending 0x%x", alloc_head, alloc_cur);
 }
 
@@ -201,6 +203,7 @@ void vmm_free(void *mem) {
 
 	// not found then add node by moving (hopefully empty) tail node to head
 	if (!found_merge) {
+		// FIXME: fix
 		if (vmm_tail->start && vmm_tail->size)
 			panic("vmm: not yet implemented D:");
 
