@@ -22,10 +22,14 @@ I had some problems booting on real hardware which I asked about on the osdev fo
 
  * Stack pointer (`esp`/`rsp`) should point to the top of stack not the bottom.
  * Linked list created in `pmm.c` is not terminated with a zero, and in case the amount of physical memory is less than 2GB it will attempt to dereference some uninitialized garbage which will cause either a page fault or general protection fault.
+ * Virtual memory manager's `alloc_list` has the same problem.
  * `[page structure]_set_addr` in `page.c` does not clear/zero the address before setting the new one.
  * When allocating a new page structure, that memory/page is not initialized, which may lead to a nonpresent structure being read as present. I made a function called `kcalloc_page` which initializes it to zero and use this for creating new page structures instead.
+ * Memory used to store printed chars in `vga.c` is also uninitialized, use a new `vcalloc` function instead.
 
-As a result, we can now draw a line in real hardware!
+As a result, LiOS can now run on real hardware!
+
+Implemented in `dbbddc0`.
 
 ## Redesigned page frame allocation
 
