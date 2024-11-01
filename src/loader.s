@@ -65,7 +65,7 @@ _start:
 
 	cli
 
-	mov esp, no_offset(stack_bottom)
+	mov esp, no_offset(stack_top)
 	mov ebp, no_offset(stack_bottom)
 	; save multiboot struct pointer before ebx gets used
 	mov [no_offset(mboot_struct_ptr)], ebx
@@ -308,7 +308,7 @@ long_mode_start:
   
 section .kernel_text
 higher_half_text:
-	mov rsp, stack_bottom
+	mov rsp, stack_top
 	mov rbp, stack_bottom
 	; put the offset back into gdt_ptr before removing identity map
 	mov qword [gdt_ptr + 2], gdt_start
@@ -357,6 +357,7 @@ pt_high:
 stack_bottom:
 	resb 0x4000
 stack_top:
+
 ; reserve 4 bytes = 32 bits for mboot struct ptr 
 mboot_struct_ptr:
 	resb 4

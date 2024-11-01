@@ -33,6 +33,7 @@ struct __attribute__((packed)) GDTEntryTSS {
 void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_addr,
 			u64 pml4[512], u64 pdpt_low[512], u64 pdt_low[512], u64 pt_low[512]) {
 	serial_init();
+	serial_info("kernel end: 0x%x", (u64) &kernel_end - KERNEL_OFFSET);
 
 	u64 limit = tss_end - tss_start;
 	tss_entry->limit = limit & 0xFFFF;
@@ -205,8 +206,13 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 		if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
 			multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
 			while ((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
-				if (mmap->type == MBOOT_MEM_AVAILABLE && mmap->addr + mmap->len > ((u64) &kernel_end - KERNEL_OFFSET))
-					pmm_add_block(u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET)), mmap->addr + mmap->len);
+				if (mmap->type != MBOOT_MEM_AVAILABLE)
+					goto bad_memory_region;
+				if (mmap->addr + mmap->len <= ((u64) &kernel_end - KERNEL_OFFSET))
+					goto bad_memory_region;
+				pmm_add_block(u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET)), mmap->addr + mmap->len);
+
+			bad_memory_region:
 				mmap = (multiboot_memory_map_t *) ((u64) mmap + ((struct multiboot_tag_mmap *) tag)->entry_size);
 			}
 
@@ -238,9 +244,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 
 	vga_init(framebuffer_addr, pixel_width, pixel_height, vga_pitch);
 	vga_clear();
-
-	for (u32 i = 0; i < 50; i++)
-		vga_putpixel(i, i, 0, 255, 0);
 
 	if (!efi_table)
 		panic("no EFI system table found!");
