@@ -47,22 +47,6 @@ mboot:
 mboot_end:
 
 _start:
-; 	mov edx, 100
-; draw_loop:
-; 	mov byte [0xA0000 + edx], 255
-; 	mov byte [0xA0000 + 4096 + edx], 255
-; 	mov byte [0xA0000 + 2 * 4096 + edx], 255
-; 	mov byte [0xA0000 + 3 * 4096 + edx], 255
-; 	mov byte [0xA0000 + 4 * 4096 + edx], 255
-; 	mov byte [0xA0000 + 5 * 4096 + edx], 255
-; 	mov byte [0xA0000 + 6 * 4096 + edx], 255
-; 	dec edx
-; 	cmp edx, 0
-; 	jnz draw_loop
-;
-; 	cli
-; 	jmp $
-
 	cli
 
 	mov esp, no_offset(stack_top)
@@ -313,18 +297,7 @@ higher_half_text:
 	; put the offset back into gdt_ptr before removing identity map
 	mov qword [gdt_ptr + 2], gdt_start
 	lgdt [gdt_ptr]
-;	push 0x08
-;	lea rax, [rel second_long_jump]
-;	push rax
-;	retf;q
 
-;second_long_jump:
-;	mov ax, 0x10
-;	mov ds, ax
-;	mov es, ax
-;	mov fs, ax
-;	mov gs, ax
-;	mov ss, ax
 	; move to registers for use in kmain
 	; https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI
 	mov rdi, gdt_tss

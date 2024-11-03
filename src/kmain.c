@@ -15,7 +15,7 @@
 #include "mem/vmalloc.h"
 #include "mem/kmalloc.h"
 
-#include "pcie/acpi.h"
+#include "pci/acpi.h"
 
 extern u64 kernel_end;
 
@@ -250,6 +250,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	find_acpi(efi_table);
 
 	serial_info("setup ok");
-	vga_printf("setup ok\n");
+	vga_printf("setup okok\n");
 }
 

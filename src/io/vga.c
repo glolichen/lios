@@ -23,7 +23,7 @@ void vga_init(u8 *addr, u32 width, u32 height, u32 pitch) {
 	vga_chars = (u8 *) vcalloc((pixel_height / 16) * (pixel_width / 8));
 
 	u32 pages_needed = ceil_u32_div(vga_pitch * pixel_height, PAGE_SIZE);
-	u64 virt = 0xFFFF900000000000;
+	u64 virt = 0xFFFF800000000000;
 	for (u32 i = 0; i < pages_needed; i++)
 		page_map(virt + i * PAGE_SIZE, (PhysicalAddress) addr + i * PAGE_SIZE);
 

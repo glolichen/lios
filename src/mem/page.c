@@ -142,7 +142,7 @@ PhysicalAddress page_virt_to_phys_addr(u64 virt) {
 }
 
 void page_map(u64 virt, PhysicalAddress phys) {
-	serial_info("page: attempt map 0x%x -> 0x%x", virt, phys);
+	// serial_info("page: attempt map 0x%x -> 0x%x", virt, phys);
 
 	u64 pml4e = virt_addr_get_pml4e(virt);
 	u64 pdpe = virt_addr_get_pdpe(virt);
@@ -186,7 +186,7 @@ void page_map(u64 virt, PhysicalAddress phys) {
 	pte_set_flag(&pt_addr->table[pte], PTE_PRESENT);
 	pte_set_flag(&pt_addr->table[pte], PTE_WRITABLE);
 
-	serial_info("page: map 0x%x virt to 0x%x phys", virt, phys);
+	// serial_info("page: map 0x%x virt to 0x%x phys", virt, phys);
 }
 
 

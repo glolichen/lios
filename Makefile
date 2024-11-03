@@ -1,4 +1,4 @@
-OBJECTS = src/loader.o src/kmain.o src/const.o src/interrupt.o src/interrupts.o src/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/kmath.o src/pcie/acpi.o
+OBJECTS = src/loader.o src/kmain.o src/const.o src/interrupt.o src/interrupts.o src/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/kmath.o src/pci/acpi.o src/pci/pci.o
 
 ASM = nasm
 ASM_FLAGS = -f elf64
@@ -16,11 +16,22 @@ QEMU_FLAGS = -boot d \
 			 -D qemulog.txt \
 			 -no-reboot \
 			 -serial file:serial.out \
-			 -machine q35 \
-			 -m 128M \
+			 -M q35 \
+			 -m 4G \
 			 -cpu qemu64 \
 			 -bios /usr/share/edk2-ovmf/x64/OVMF.fd \
-			 -monitor stdio
+			 -monitor stdio \
+
+			 # -drive file=image.img,if=none,id=drive0 \
+			 # -device nvme,drive=drive0,serial=1234 \
+
+			 # -device ich9-ahci,id=ahci0 \
+			 # -drive id=disk1,file=image.img,if=none \
+			 # -device ide-hd,drive=disk1,bus=ahci0.0 \
+
+			 # -device nvme,drive=mydrive,serial=1234 \
+			 # -drive file=image.img,if=none,id=mydrive \
+			 # -device piix3-ide,id=ide -drive id=disk,file=image.img,format=raw,if=none -device ide-hd,drive=disk,bus=ide.0
 
 # qemu-system-x86_64 -m 2048 \
 	# -hda ./vdisk/16GB.img \
