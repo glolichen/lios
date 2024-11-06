@@ -13,18 +13,6 @@ section .text
 	MBOOT_HEADER_LENGTH equ no_offset(mboot_end) - no_offset(mboot)
 	MBOOT_CHECK equ 0x100000000 - (MBOOT_MAGIC + MBOOT_ARCH + MBOOT_HEADER_LENGTH)
 
-	; NOT_MULTIBOOT db "Not multiboot2!"
-	; NOT_MULTIBOOT_SIZE equ $-NOT_MULTIBOOT
-	;
-	; NO_CPUID db "CPUID not available!"
-	; NO_CPUID_SIZE equ $-NO_CPUID
-	;
-	; NO_EXT_CPUID db "Extended CPUID not available!"
-	; NO_EXT_CPUID_SIZE equ $-NO_EXT_CPUID
-	;
-	; NO_LONG_MODE db "No long mode!"
-	; NO_LONG_MODE_SIZE equ $-NO_LONG_MODE
-
 mboot:
 	align 8
 	dd MBOOT_MAGIC
@@ -53,54 +41,6 @@ _start:
 	mov ebp, no_offset(stack_bottom)
 	; save multiboot struct pointer before ebx gets used
 	mov [no_offset(mboot_struct_ptr)], ebx
-
-; 	jmp checks_complete
-;
-; 	cmp eax, 0x36D76289
-; 	je is_multiboot
-; 	mov eax, NOT_MULTIBOOT
-; 	mov ebx, NOT_MULTIBOOT_SIZE
-; 	call error
-;
-; is_multiboot:
-; 	; https://wiki.osdev.org/CPUID#Checking_CPUID_availability
-; 	; https://wiki.osdev.org/Setting_Up_Long_Mode
-; 	; check if cpu has cpuid
-; 	pushfd
-; 	pushfd
-; 	xor dword [esp], 0x200000
-; 	popfd
-; 	pushfd
-; 	pop eax
-; 	xor eax, [esp]
-; 	popfd
-; 	and eax, 0x200000
-; 	cmp eax, 0
-; 	jne ext_cpuid_check
-; 	mov eax, NO_CPUID
-; 	mov ebx, NO_CPUID_SIZE
-; 	call error
-;
-; 	; check for extended function cpuid
-; ext_cpuid_check:
-; 	mov eax, 0x80000000
-; 	cpuid
-; 	; max supported less than 0x80000001 = bad
-; 	cmp eax, 0x80000001
-; 	jnb check_long_mode
-; 	mov eax, NO_EXT_CPUID
-; 	mov ebx, NO_EXT_CPUID_SIZE
-; 	call error
-;
-; 	; check for long mode
-; check_long_mode:
-; 	mov eax, 0x80000001
-; 	cpuid
-; 	test edx, 1 << 29
-; 	jnz checks_complete
-; 	mov eax, NO_LONG_MODE
-; 	mov ebx, NO_LONG_MODE_SIZE
-; 	call error
 
 checks_complete:
 	; enable PAE
@@ -405,3 +345,4 @@ gdt_tss:
 	dd 0 ; base
 	dd 0 ; reserved
 gdt_end:
+

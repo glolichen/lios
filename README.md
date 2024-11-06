@@ -6,15 +6,16 @@ An experimental x86_64 operating system written from scratch in C.
 
  * Bootstrapping to long mode
  * Interrupts (only keyboard implemented)
- * Printing to VGA (text mode only) and serial
+ * Printing to VGA graphical mode and serial
  * Some basic memory management
    * Uses paging (obviously)
    * Linked list based page frame and virtual address allocator
    * Kernel heap allocator (using linked lists and bitmap)
+ * Supports UEFI
 
 ## To Do
 
- * Support UEFI. Move away from VGA text mode. Instead draw each pixel manually... how amazing
+ * CPUID stuff?
  * Virtual address allocator can only use 1 4KiB page, which is only 128 linked list nodes. So if the memory gets too fragmented the allocator will completely break.
  * Filesystem and hard disk/solid state drive driver
  * Processes

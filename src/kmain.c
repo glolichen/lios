@@ -250,6 +250,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	find_acpi(efi_table);
 
 	serial_info("setup ok");
-	vga_printf("setup okok\n");
+	vga_printf("setup ok\n");
 }
 

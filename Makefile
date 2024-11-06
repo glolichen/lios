@@ -21,6 +21,8 @@ QEMU_FLAGS = -boot d \
 			 -cpu qemu64 \
 			 -bios /usr/share/edk2-ovmf/x64/OVMF.fd \
 			 -monitor stdio \
+			 -drive file=nvm.img,if=none,id=nvm \
+			 -device nvme,serial=deadbeef,drive=nvm
 
 			 # -drive file=image.img,if=none,id=drive0 \
 			 # -device nvme,drive=drive0,serial=1234 \

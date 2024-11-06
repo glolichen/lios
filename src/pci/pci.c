@@ -32,21 +32,20 @@ void list_pci_devices(struct MCFG *mcfg) {
 					u16 vendor_id = vendor_device_id & 0xFFFF;
 					u16 device_id = (vendor_device_id >> 16) & 0xFFFF;
 
-					// https://pcisig.com/sites/default/files/files/PCI_Code-ID_r_1_11__v24_Jan_2019.pdf
-					// class code is actually 3 bytes (despite u32 representation)
-					// subclass is the middle byte of class code
+					// https://wiki.osdev.org/PCI#Common_Header_Fields
 					u32 register2 = pci_read_32(VIRT_ADDR, bus, device, function, 0x08);
 					u8 class_code = (register2 >> 24) & 0xFF;
 					u8 subclass = (register2 >> 16) & 0xFF;
+					u8 prog_if = (register2 >> 8) & 0xFF;
 
-					serial_info("PCIe Device Found: Bus %u, Device %u, Function 0x%x", bus, device, function);
-					serial_info("    Vendor ID: 0x%x, Device ID: 0x%x", vendor_id, device_id);
-					serial_info("    Class Code: 0x%x, Subclass: 0x%x\n", class_code, subclass);
+					serial_info("PCIe device: bus %u, device %u, function %u", bus, device, function);
+					serial_info("    vendor id 0x%x, device id 0x%x", vendor_id, device_id);
+					serial_info("    class code 0x%x, subclass 0x%x, prog if 0x%x", class_code, subclass, prog_if);
 
-					vga_printf("PCIe Device Found: Bus %u, Device %u, Function %u\n", bus, device, function);
-					if (function == 1) {
-						vga_printf("    Vendor ID: 0x%x, Device ID: 0x%x\n", vendor_id, device_id);
-						vga_printf("    Class Code: 0x%x, Subclass 0x%x\n", class_code, subclass);
+					vga_printf("PCIe device: bus %u, device %u, function %u\n", bus, device, function);
+					if (class_code == 1) {
+						vga_printf("    vendor id 0x%x, device id 0x%x\n", vendor_id, device_id);
+						vga_printf("    class code 0x%x, subclass 0x%x, prog if 0x%x\n\n", class_code, subclass, prog_if);
 					}
 				}
 			}
