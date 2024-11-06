@@ -20,6 +20,8 @@ Storage and filesystem! Unfortunately there's a list of very confusing and hard 
 
 This works. We are able to make QEMU attach an NVMe drive to the emulated system, the OS can find the PCI configuration spaces using memory mapped IO, list the devices and are able to find this attached drive. It shows up as class code `0x1`, subclass `0x8`, prog IF `0x2`, which is an NVM Express Mass Storage Controller according to [this table](https://wiki.osdev.org/PCI#Class_Codes).
 
+![A picture of the emulator](./images/pci_nvme.png)
+
 ### Step 2
 
 Now we need to interact with this NVMe PCI device, somehow.
