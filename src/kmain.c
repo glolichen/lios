@@ -16,6 +16,7 @@
 #include "mem/kmalloc.h"
 
 #include "pci/acpi.h"
+#include "pci/nvme.h"
 
 extern u64 kernel_end;
 
@@ -247,7 +248,11 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 
 	if (!efi_table)
 		panic("no EFI system table found!");
-	find_acpi(efi_table);
+
+	struct MCFG *mcfg = find_acpi(efi_table);
+	if (!nvme_find(mcfg))
+		panic("no NVMe device!");
+	nvme_init();
 
 	serial_info("setup ok");
 	vga_printf("setup ok\n");

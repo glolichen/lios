@@ -39,5 +39,6 @@ Sort of based on Linux.
  * [OSDev Wiki](https://wiki.osdev.org)
  * [ACPI specification](https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/index.html)
  * [UEFI specification](https://uefi.org/specs/UEFI/2.10_A/index.html)
+ * NVMe base specification and NVMe over PCIe specification ([here](https://nvmexpress.org/specifications/))
 
 (write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`)

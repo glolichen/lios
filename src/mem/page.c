@@ -222,26 +222,26 @@ void page_unmap(u64 virt) {
 			pt_used = true;
 	}
 
-	serial_info("page: unmap 0x%x virt from 0x%x phys", virt, pte_get_addr(&pt_addr->table[pte]));
-	serial_info("page: PDPT used %u, PDT used %u, PT used %u", pdpt_used, pdt_used, pt_used);
+	// serial_info("page: unmap 0x%x virt from 0x%x phys", virt, pte_get_addr(&pt_addr->table[pte]));
+	// serial_info("page: PDPT used %u, PDT used %u, PT used %u", pdpt_used, pdt_used, pt_used);
 
 	if (!pdpt_used && !pdt_used && !pt_used) {
-		serial_info("page: unmap: free PDPT at virt 0x%x", pdpt_addr);
+		// serial_info("page: unmap: free PDPT at virt 0x%x", pdpt_addr);
 		kfree_page((u64) pdpt_addr);
 	}
 	if (!pdt_used && !pt_used) {
-		serial_info("page: unmap: free PDT at virt 0x%x", pdt_addr);
+		// serial_info("page: unmap: free PDT at virt 0x%x", pdt_addr);
 		kfree_page((u64) pdt_addr);
 	}
 	if (!pt_used) {
-		serial_info("page: unmap: free PT at virt 0x%x", pt_addr);
+		// serial_info("page: unmap: free PT at virt 0x%x", pt_addr);
 		kfree_page((u64) pt_addr);
 	}
 
 	if (!pte_query_flag(&pt_addr->table[pte], PTE_PRESENT))
 		return;
 
-	serial_info("page: unmap: actually perform unmap");
+	// serial_info("page: unmap: actually perform unmap");
 	pt_addr->table[pte] = 0;
 	invplg(virt);
 }

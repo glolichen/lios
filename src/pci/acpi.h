@@ -51,6 +51,6 @@ struct __attribute__((packed)) MCFG {
 	struct MCFGEntry entries[];
 };
 
-void find_acpi(EFI_SYSTEM_TABLE *efi_table);
+struct MCFG *find_acpi(EFI_SYSTEM_TABLE *efi_table);
 
 #endif

@@ -1,4 +1,4 @@
-OBJECTS = src/loader.o src/kmain.o src/const.o src/interrupt.o src/interrupts.o src/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/kmath.o src/pci/acpi.o src/pci/pci.o
+OBJECTS = src/loader.o src/kmain.o src/const.o src/interrupt.o src/interrupts.o src/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/kmath.o src/pci/acpi.o src/pci/nvme.o
 
 ASM = nasm
 ASM_FLAGS = -f elf64
@@ -10,7 +10,7 @@ COMPILE_FLAGS = -ffreestanding -mno-red-zone \
 LINK_FLAGS = -T link.ld -o iso/boot/os.bin -ffreestanding -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -O3 -nostdlib -lgcc -z max-page-size=0x1000 -no-pie
 
 QEMU = qemu-system-x86_64
-QEMU_FLAGS = -boot d \
+QEMU_FLAGS = -boot c \
 			 -cdrom iso/os.iso \
 			 -d int,guest_errors,unimp \
 			 -D qemulog.txt \
@@ -19,7 +19,7 @@ QEMU_FLAGS = -boot d \
 			 -M q35 \
 			 -m 4G \
 			 -cpu qemu64 \
-			 -bios /usr/share/edk2-ovmf/x64/OVMF.fd \
+			 -bios copy_OVMF.4m.fd \
 			 -monitor stdio \
 			 -drive file=nvm.img,if=none,id=nvm \
 			 -device nvme,serial=deadbeef,drive=nvm

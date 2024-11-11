@@ -1,5 +1,5 @@
 #include "acpi.h"
-#include "pci.h"
+#include "nvme.h"
 #include "../const.h"
 #include "../panic.h"
 #include "../io/output.h"
@@ -18,7 +18,7 @@ bool is_same_guid(EFI_GUID *a, EFI_GUID *b) {
 	return a->Data1 == b->Data1 && a->Data2 == b->Data2 && a->Data3 == b->Data3;
 }
 
-void find_acpi(EFI_SYSTEM_TABLE *efi_table) {
+struct MCFG *find_acpi(EFI_SYSTEM_TABLE *efi_table) {
 	// https://uefi.org/specs/UEFI/2.10_A/04_EFI_System_Table.html#id6
 	// https://uefi.org/specs/UEFI/2.10_A/04_EFI_System_Table.html#industry-standard-configuration-tables
 
@@ -64,7 +64,6 @@ void find_acpi(EFI_SYSTEM_TABLE *efi_table) {
 	if (!mcfg)
 		panic("acpi: MCFG not found!");
 
-	serial_info("aaa 0x%x", mcfg->entries);
-	list_pci_devices(mcfg);
+	return mcfg;
 }
 

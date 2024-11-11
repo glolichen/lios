@@ -24,7 +24,12 @@ This works. We are able to make QEMU attach an NVMe drive to the emulated system
 
 ### Step 2
 
-Now we need to interact with this NVMe PCI device, somehow.
+Let the great [NVMe specification](https://nvmexpress.org/specifications/) reading begin! (no, please don't make me do this...)
+
+<!-- Now we need to interact with this NVMe PCI device. As described in OSTEP, chapter "I/O Devices," we can: -->
+<!-- 1. wait until the device is available, issue a command, then wait until command is complete -->
+<!-- 2. use interrupts, so that the OS can go do something else (load another process) and return when the command is complete -->
+<!-- However, because we will not support multitasking for now (ie forever), we will go with the first one. (*Yeah it will be slow and inefficient but who cares*) -->
 
 ## Problems with real harwdare
 
