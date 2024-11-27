@@ -67,13 +67,14 @@ struct __attribute__((packed)) SubmissionEntry {
 };
 
 struct __attribute__((packed)) CompletionEntry {
-	u32 dword0;
-	u32 dword1;
+	u32 dword0; // command specific
+	u32 dword1; // command specific
 	u32 dword2;
 	u32 dword3;
 };
 
-struct NVMERegisters *nvme_base;
+// need volatile for MMIO
+volatile struct NVMERegisters *nvme_base;
 
 u64 pci_get_addr(u64 base, u8 bus, u8 device, u8 function, u8 offset) {
 	return (bus << 20 | device << 15 | function << 12) + base + offset;
@@ -131,7 +132,7 @@ found_nvme_device:
 	return false;
 }
 
-u32 *admin_tail_doorbell;
+volatile u32 *admin_tail_doorbell;
 u32 admin_submission_tail, admin_completion_head;
 
 void nvme_init(void) {
@@ -153,12 +154,12 @@ void nvme_init(void) {
 		panic("nvme: controller does not support nvm command set!");
 
 	// set IO and admin queue size (all 63)
-	nvme_base->CC = (63 << 16) | (63 << 20);
+	nvme_base->CC = (3 << 16) | (3 << 20);
 	nvme_base->AQA = (63 << 16) | 63;
 
 	// set admin submission/completion queue address
-	struct SubmissionEntry *asq = (struct SubmissionEntry *) kmalloc_page();
-	struct CompletionEntry *acq = (struct CompletionEntry *) kmalloc_page();
+	volatile struct SubmissionEntry *asq = (struct SubmissionEntry *) kmalloc_page();
+	volatile struct CompletionEntry *acq = (struct CompletionEntry *) kmalloc_page();
 	nvme_base->ASQ = page_virt_to_phys_addr((u64) asq);
 	nvme_base->ACQ = page_virt_to_phys_addr((u64) acq);
 
@@ -166,6 +167,8 @@ void nvme_init(void) {
 	nvme_base->CC |= 1;
 	while (!(nvme_base->CSTS & 1))
 		asm volatile("nop");
+
+	serial_info("CC: 0x%x", nvme_base->CC);
 
 	admin_submission_tail = 0;
 	admin_completion_head = 0;
@@ -176,18 +179,31 @@ void nvme_init(void) {
 	// u32 doorbell_stride = 4 << ((nvme_base->CAP >> 32) & 0xF);
 
 	// create IO completion queue (base spec 101-102)
-	u64 io_complete_addr = kmalloc_page();
+	/* need to set metadata pointer (MPTR)?
+	 * Metadata Pointer (MPTR): If CDW0.PSDT (refer to Figure 91 is cleared to 00b, then this field shall contain
+	 * the address of a contiguous physical buffer of metadata and that address shall be dword aligned (i.e., bits 1:0
+	 * cleared to 00b). The controller is not required to check that bits 1:0 are cleared to 00b. The controller may
+	 * report an error of Invalid Field in Command if bits 1:0 are not cleared to 00b. If the controller does not report
+	 * an error of Invalid Field in Command, then the controller shall operate as if bits 1:0 are cleared to 00b. */
+
+	u64 io_complete_addr = kmalloc_page(), mptr = kmalloc_page();
 	asq[admin_submission_tail] = (const struct SubmissionEntry) {0};
 	asq[admin_submission_tail].opcode = 5;
 	asq[admin_submission_tail].identifier = 1;
 	asq[admin_submission_tail].nsid = 0;
+	// asq[admin_submission_tail].metadata_ptr = page_virt_to_phys_addr(mptr);
 	asq[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
 	asq[admin_submission_tail].dword11 = 1; // disable interrupts, physically contiguous
 	asq[admin_submission_tail].prp1 = page_virt_to_phys_addr(io_complete_addr);
-	(*admin_tail_doorbell)++;
-	admin_submission_tail++;
+	serial_info("ACQ: dword 0: 0x%x", acq[admin_completion_head].dword0);
+	serial_info("ACQ: dword 1: 0x%x", acq[admin_completion_head].dword1);
+	serial_info("ACQ: dword 2: 0x%x", acq[admin_completion_head].dword2);
+	serial_info("ACQ: dword 3: 0x%x", acq[admin_completion_head].dword3);
+	// *admin_tail_doorbell = 1;
+	// admin_submission_tail++;
+	*admin_tail_doorbell = ++admin_submission_tail;
 	// wait for phase change / new entry in completion queue
-	while (!(acq[admin_completion_head].dword3 & 1))
+	while (!((acq[admin_completion_head].dword3 >> 16) & 1))
 		asm volatile("nop");
 
 	vga_printf("completion ok\n");
@@ -198,27 +214,28 @@ void nvme_init(void) {
 	admin_completion_head++;
 
 	// create io submission queue (base spec 102-103)
-	u64 io_submit_addr = kmalloc_page();
-	asq[admin_submission_tail] = (const struct SubmissionEntry) {0};
-	asq[admin_submission_tail].opcode = 1;
-	asq[admin_submission_tail].identifier = 2;
-	asq[admin_submission_tail].nsid = 0;
-	asq[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
-	asq[admin_submission_tail].dword11 = (1 << 16) | 1; // completion identifier 1, physically contiguous
-	asq[admin_submission_tail].prp1 = page_virt_to_phys_addr(io_submit_addr);
-	(*admin_tail_doorbell)++;
-	admin_submission_tail++;
-	while (!(acq[admin_completion_head].dword3 & 1)) {
-		vga_printf("waiting %u\n", acq[admin_completion_head].dword3);
-		asm volatile("nop");
-	}
-	
-	vga_printf("submission ok");
-	serial_info("ACQ: dword 0: 0x%x", acq[admin_completion_head].dword0);
-	serial_info("ACQ: dword 1: 0x%x", acq[admin_completion_head].dword1);
-	serial_info("ACQ: dword 2: 0x%x", acq[admin_completion_head].dword2);
-	serial_info("ACQ: dword 3: 0x%x", acq[admin_completion_head].dword3);
-	admin_completion_head++;
+	// u64 io_submit_addr = kmalloc_page();
+	// asq[admin_submission_tail] = (const struct SubmissionEntry) {0};
+	// asq[admin_submission_tail].opcode = 1;
+	// asq[admin_submission_tail].identifier = 2;
+	// asq[admin_submission_tail].nsid = 0;
+	// asq[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
+	// asq[admin_submission_tail].dword11 = (1 << 16) | 1; // completion identifier 1, physically contiguous
+	// asq[admin_submission_tail].prp1 = page_virt_to_phys_addr(io_submit_addr);
+	// *admin_tail_doorbell = ++admin_submission_tail;
+	// // *admin_tail_doorbell = 1;
+	// // admin_submission_tail++;
+	// while (!((acq[admin_completion_head].dword3 >> 16) & 1)) {
+	// 	vga_printf("waiting %u\n", acq[admin_completion_head].dword3);
+	// 	asm volatile("nop");
+	// }
+	// 
+	// vga_printf("submission ok");
+	// serial_info("ACQ: dword 0: 0x%x", acq[admin_completion_head].dword0);
+	// serial_info("ACQ: dword 1: 0x%x", acq[admin_completion_head].dword1);
+	// serial_info("ACQ: dword 2: 0x%x", acq[admin_completion_head].dword2);
+	// serial_info("ACQ: dword 3: 0x%x", acq[admin_completion_head].dword3);
+	// admin_completion_head++;
 
 	// u32 *CQ0TDBL = (u32 *) nvme_base->doorbells + doorbell_stride;
 	// u32 *SQ1TDBL = (u32 *) nvme_base->doorbells + 2 * doorbell_stride;
