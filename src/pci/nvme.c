@@ -53,7 +53,6 @@ struct __attribute__((packed)) SubmissionEntry {
 	u8 reserved1 : 4;
 	u8 prp_sgl : 2;
 	u16 identifier;
-
 	u32 nsid;			// dword 1
 	u64 reserved2;		// dwords 2-3
 	u64 metadata_ptr;	// dwords 4-5
@@ -132,16 +131,18 @@ found_nvme_device:
 	return false;
 }
 
-volatile u32 *admin_tail_doorbell;
+volatile struct SubmissionEntry *admin_submit, *io_submit;
+volatile struct CompletionEntry *admin_complete, *io_complete;
+volatile u32 *admin_tail_doorbell, *io_tail_doorbell;
 u32 admin_submission_tail, admin_completion_head;
 
 void nvme_init(void) {
 	// disable controller and wait
 	nvme_base->CC = 0;
-	while (nvme_base->CSTS & 1) {
-		// otherwise compiler optimizes this into a forever loop, very weird
+
+	// otherwise the compiler optimizes away this loop
+	while (nvme_base->CSTS & 1)
 		asm volatile("nop");
-	}
 
 	// capabilities check
 	u8 min_page_size = (nvme_base->CAP >> 48) & 0xF;
@@ -153,94 +154,75 @@ void nvme_init(void) {
 	if (!(command_sets & 1))
 		panic("nvme: controller does not support nvm command set!");
 
-	// set IO and admin queue size (all 63)
-	nvme_base->CC = (3 << 16) | (3 << 20);
+	// IO completion queue size is 4, IO submission queue size is 6 (spec P318)
+	nvme_base->CC = (6 << 16) | (4 << 20);
 	nvme_base->AQA = (63 << 16) | 63;
 
 	// set admin submission/completion queue address
-	volatile struct SubmissionEntry *asq = (struct SubmissionEntry *) kmalloc_page();
-	volatile struct CompletionEntry *acq = (struct CompletionEntry *) kmalloc_page();
-	nvme_base->ASQ = page_virt_to_phys_addr((u64) asq);
-	nvme_base->ACQ = page_virt_to_phys_addr((u64) acq);
+	admin_submit = (struct SubmissionEntry *) kmalloc_page();
+	admin_complete = (struct CompletionEntry *) kmalloc_page();
+	nvme_base->ASQ = page_virt_to_phys_addr((u64) admin_submit);
+	nvme_base->ACQ = page_virt_to_phys_addr((u64) admin_complete);
 
 	// re-enable controller
 	nvme_base->CC |= 1;
 	while (!(nvme_base->CSTS & 1))
 		asm volatile("nop");
 
-	serial_info("CC: 0x%x", nvme_base->CC);
-
 	admin_submission_tail = 0;
 	admin_completion_head = 0;
-	// nvme over pcie spec 9-10
+	
+	// nvme over pcie spec P9-10, base spec P54
+	u32 doorbell_stride = 4 << ((nvme_base->CAP >> 32) & 0xF);
 	admin_tail_doorbell = (u32 *) (u64) nvme_base->doorbells;
+	// we will create IO queue at slot 1
+	io_tail_doorbell = (u32 *) (u64) (nvme_base->doorbells + 2 * doorbell_stride);
+	// u32 *CQ0TDBL = (u32 *) nvme_base->doorbells + doorbell_stride;
+	// u32 *CQ1TDBL = (u32 *) nvme_base->doorbells + 3 * doorbell_stride;
 
-	// base spec 54
-	// u32 doorbell_stride = 4 << ((nvme_base->CAP >> 32) & 0xF);
-
-	// create IO completion queue (base spec 101-102)
-	/* need to set metadata pointer (MPTR)?
-	 * Metadata Pointer (MPTR): If CDW0.PSDT (refer to Figure 91 is cleared to 00b, then this field shall contain
-	 * the address of a contiguous physical buffer of metadata and that address shall be dword aligned (i.e., bits 1:0
-	 * cleared to 00b). The controller is not required to check that bits 1:0 are cleared to 00b. The controller may
-	 * report an error of Invalid Field in Command if bits 1:0 are not cleared to 00b. If the controller does not report
-	 * an error of Invalid Field in Command, then the controller shall operate as if bits 1:0 are cleared to 00b. */
-
-	u64 io_complete_addr = kmalloc_page(), mptr = kmalloc_page();
-	asq[admin_submission_tail] = (const struct SubmissionEntry) {0};
-	asq[admin_submission_tail].opcode = 5;
-	asq[admin_submission_tail].identifier = 1;
-	asq[admin_submission_tail].nsid = 0;
-	// asq[admin_submission_tail].metadata_ptr = page_virt_to_phys_addr(mptr);
-	asq[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
-	asq[admin_submission_tail].dword11 = 1; // disable interrupts, physically contiguous
-	asq[admin_submission_tail].prp1 = page_virt_to_phys_addr(io_complete_addr);
-	serial_info("ACQ: dword 0: 0x%x", acq[admin_completion_head].dword0);
-	serial_info("ACQ: dword 1: 0x%x", acq[admin_completion_head].dword1);
-	serial_info("ACQ: dword 2: 0x%x", acq[admin_completion_head].dword2);
-	serial_info("ACQ: dword 3: 0x%x", acq[admin_completion_head].dword3);
-	// *admin_tail_doorbell = 1;
-	// admin_submission_tail++;
+	io_complete = (struct CompletionEntry *) kmalloc_page();
+	admin_submit[admin_submission_tail] = (const struct SubmissionEntry) {0};
+	admin_submit[admin_submission_tail].opcode = 5;
+	admin_submit[admin_submission_tail].identifier = 1;
+	admin_submit[admin_submission_tail].nsid = 0;
+	admin_submit[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
+	admin_submit[admin_submission_tail].dword11 = 1; // disable interrupts, physically contiguous
+	admin_submit[admin_submission_tail].prp1 = page_virt_to_phys_addr((u64) io_complete);
 	*admin_tail_doorbell = ++admin_submission_tail;
 	// wait for phase change / new entry in completion queue
-	while (!((acq[admin_completion_head].dword3 >> 16) & 1))
+	while (!((admin_complete[admin_completion_head].dword3 >> 16) & 1))
 		asm volatile("nop");
 
-	vga_printf("completion ok\n");
-	serial_info("ACQ: dword 0: 0x%x", acq[admin_completion_head].dword0);
-	serial_info("ACQ: dword 1: 0x%x", acq[admin_completion_head].dword1);
-	serial_info("ACQ: dword 2: 0x%x", acq[admin_completion_head].dword2);
-	serial_info("ACQ: dword 3: 0x%x", acq[admin_completion_head].dword3);
+	// status code type (SCT) 0 usually means success, spec P138-140, 419-420
+	if ((admin_complete[admin_completion_head].dword3 >> 25) & 7)
+		panic("nvme: failure when creating IO completion queue!");
+	serial_info(
+		"nvme: created IO completion queue at 0x%x",
+		 page_virt_to_phys_addr((u64) io_complete)
+	);
 	admin_completion_head++;
 
-	// create io submission queue (base spec 102-103)
-	// u64 io_submit_addr = kmalloc_page();
-	// asq[admin_submission_tail] = (const struct SubmissionEntry) {0};
-	// asq[admin_submission_tail].opcode = 1;
-	// asq[admin_submission_tail].identifier = 2;
-	// asq[admin_submission_tail].nsid = 0;
-	// asq[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
-	// asq[admin_submission_tail].dword11 = (1 << 16) | 1; // completion identifier 1, physically contiguous
-	// asq[admin_submission_tail].prp1 = page_virt_to_phys_addr(io_submit_addr);
-	// *admin_tail_doorbell = ++admin_submission_tail;
-	// // *admin_tail_doorbell = 1;
-	// // admin_submission_tail++;
-	// while (!((acq[admin_completion_head].dword3 >> 16) & 1)) {
-	// 	vga_printf("waiting %u\n", acq[admin_completion_head].dword3);
-	// 	asm volatile("nop");
-	// }
-	// 
-	// vga_printf("submission ok");
-	// serial_info("ACQ: dword 0: 0x%x", acq[admin_completion_head].dword0);
-	// serial_info("ACQ: dword 1: 0x%x", acq[admin_completion_head].dword1);
-	// serial_info("ACQ: dword 2: 0x%x", acq[admin_completion_head].dword2);
-	// serial_info("ACQ: dword 3: 0x%x", acq[admin_completion_head].dword3);
-	// admin_completion_head++;
+	// create io submission queue (spec P102-103)
+	io_submit = (struct SubmissionEntry *) kmalloc_page();
+	admin_submit[admin_submission_tail] = (const struct SubmissionEntry) {0};
+	admin_submit[admin_submission_tail].opcode = 1;
+	admin_submit[admin_submission_tail].identifier = 2;
+	admin_submit[admin_submission_tail].nsid = 0;
+	admin_submit[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
+	admin_submit[admin_submission_tail].dword11 = (1 << 16) | 1; // completion identifier 1, physically contiguous
+	admin_submit[admin_submission_tail].prp1 = page_virt_to_phys_addr((u64) io_submit);
+	*admin_tail_doorbell = ++admin_submission_tail;
+	while (!((admin_complete[admin_completion_head].dword3 >> 16) & 1))
+		asm volatile("nop");
 
-	// u32 *CQ0TDBL = (u32 *) nvme_base->doorbells + doorbell_stride;
-	// u32 *SQ1TDBL = (u32 *) nvme_base->doorbells + 2 * doorbell_stride;
-	// u32 *CQ1TDBL = (u32 *) nvme_base->doorbells + 3 * doorbell_stride;
-	//
+	if ((admin_complete[admin_completion_head].dword3 >> 25) & 7)
+		panic("nvme: failure when creating IO submission queue!");
+	serial_info(
+		"nvme: created IO submission queue at 0x%x",
+		 page_virt_to_phys_addr((u64) io_submit)
+	);
+	admin_completion_head++;
+
 	// serial_info("0x%x %u", admin_tail_doorbell, *admin_tail_doorbell);
 	// serial_info("0x%x", CQ0TDBL);
 	// serial_info("0x%x", SQ1TDBL);

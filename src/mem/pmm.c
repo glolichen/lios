@@ -141,7 +141,7 @@ void pmm_free(PhysicalAddress mem) {
 
 	if (mem >= TWO_GB) {
 		// freeing user memory
-		serial_info("pmm: free node 0x%x, addr 0x%x (user)", cur, mem);
+		serial_info("pmm: free node 0x%x, addr 0x%x (high)", cur, mem);
 		struct PhysFreeListNode *old_user = pmm_high;
 		pmm_high = (struct PhysFreeListNode *) cur;
 		pmm_high->next = old_user;
@@ -150,7 +150,7 @@ void pmm_free(PhysicalAddress mem) {
 		return;
 	}
 	// freeing kernel memory
-	serial_info("pmm: free node 0x%x, addr 0x%x (kernel)", cur, mem);
+	serial_info("pmm: free node 0x%x, addr 0x%x (low)", cur, mem);
 	struct PhysFreeListNode *old_kernel = pmm_low;
 	pmm_low = (struct PhysFreeListNode *) cur;
 	pmm_low->next = old_kernel;

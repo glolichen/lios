@@ -24,10 +24,11 @@ An experimental x86_64 operating system written from scratch in C.
 
 ## Memory Layout
 
-Sort of based on Linux.
- * 0xFFFFFFFF80000000-0xFFFFFFFFFFFFFFFF (highest 2GiB) is directly mapped to the first 2GiB of physical memory. Paging structures, and also DMA structures sometime in the future, are stored here.
- * 0xFFFFF00000000000-0xFFFFFFFF80000000 are used for other pieces of kernel memory. Page frames come from the rest of physical memory, outside of the first 2GiB. User page frames also come from here.
- * 0xFFFF800000000000-0xFFFFF00000000000 reserved for VGA frame buffer virtual address
+Sort of based on Linux, with other self-imposed janks as well.
+ * 0xFFFFFFFF80000000-0xFFFFFFFFFFFFFFFF (highest 2GiB) is directly mapped to the first 2GiB of physical memory. Paging structures, and also DMA structures sometime in the future, are stored here. Used for `kmalloc`
+ * 0xFFFFF00000000000-0xFFFFFFFF80000000 are used for other pieces of kernel memory. Used for `vmalloc`. Page frames used by `vmalloc` come from physical memory above the 2GiB mark. User page frames also come from there.
+ * 0xFFFF800000000000-??? reserved for VGA frame buffer virtual address.
+ * 0xFFFF900000000000-??? are used to temporarily map PCI device configuration spaces when looking for NVMe drives, and is then used to map the NVMe device for future use.
  * Lower-half virtual memory for user processes.
 
 ## Sources
@@ -42,3 +43,4 @@ Sort of based on Linux.
  * NVMe base specification and NVMe over PCIe specification ([here](https://nvmexpress.org/specifications/))
 
 (write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`)
+
