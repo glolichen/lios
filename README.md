@@ -40,7 +40,7 @@ Sort of based on Linux, with other self-imposed janks as well.
  * [OSDev Wiki](https://wiki.osdev.org)
  * [ACPI specification](https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/index.html)
  * [UEFI specification](https://uefi.org/specs/UEFI/2.10_A/index.html)
- * NVMe base specification and NVMe over PCIe specification ([here](https://nvmexpress.org/specifications/))
+ * NVMe base specification and NVMe over PCIe specification ([here](https://nvmexpress.org/specifications/)) (specifically used base revision 2.1, 8/5/24)
 
 (write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`)
 
