@@ -176,5 +176,8 @@ enum {
 
 #define PAGE_SIZE 4096
 #define VMM_MAGIC 0x420F1337
+//
+// defualt value
+#define	NVME_LBA_SIZE 512
 
 #endif

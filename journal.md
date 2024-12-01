@@ -20,11 +20,17 @@ Storage and filesystem! Unfortunately there's a list of very confusing and hard 
 
 This works. We are able to make QEMU attach an NVMe drive to the emulated system, the OS can find the PCI configuration spaces using memory mapped IO, list the devices and are able to find this attached drive. It shows up as class code `0x1`, subclass `0x8`, prog IF `0x2`, which is an NVM Express Mass Storage Controller according to [this table](https://wiki.osdev.org/PCI#Class_Codes).
 
-![A picture of the emulator](./images/pci_nvme.png)
+![A picture of the emulator](./media/pci_nvme.png)
 
 ### Step 2
 
-After locating the NVMe base address, we need to create the I/O Submission and Completion Queues, which involves sending commands to the device using the Admin Submission Queue.
+After locating the NVMe base address, we need to create the I/O Submission and Completion Queues, which involves sending commands to the device using the Admin Submission Queue. This entails configuring the Controller Capabilities field (CC), restarting the controller, and sending two commands. Base spec P138 and onwards is quite useful for decoding the posted completion queue entry.
+
+This step was quite confusing as NVMe is quite a complex standard, but after asking around the internet and reading the manual I have figured out how to do this.
+
+I have also figured out how to send the "read" and "write" commands through the created IO submission queue. This allows us to read and write to a storage device, which is pretty huge. That by itself is not very useful, as we need a few more abstractions to have a properly functioning filesystem.
+
+Something quite neat here is because our `vmalloc` heap allocator works in sections of 16 bytes, we do not need to worry about NVMe's requirement of dword (4 byte) alignment for physical region page (PRP).
 
 ## Problems with real harwdare
 

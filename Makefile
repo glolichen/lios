@@ -21,7 +21,7 @@ QEMU_FLAGS = -boot c \
 			 -cpu qemu64 \
 			 -bios copy_OVMF.4m.fd \
 			 -monitor stdio \
-			 -drive file=nvm.img,if=none,id=nvm \
+			 -drive file=disk.img,if=none,format=raw,id=nvm \
 			 -device nvme,serial=deadbeef,drive=nvm
 
 			 # -drive file=image.img,if=none,id=drive0 \

@@ -6,6 +6,7 @@
 #include "../io/output.h"
 #include "../mem/page.h"
 #include "../mem/kmalloc.h"
+#include "../mem/vmalloc.h"
 
 #define VIRT_ADDR 0xFFFF900000000000
 
@@ -28,6 +29,7 @@ struct __attribute__((packed)) PCIHeader {
 	u8 interrupt_line, interrupt_pin, min_grant, max_latency;
 };
 
+// useful: base P49-?? 
 struct __attribute__((packed)) NVMERegisters {
 	u64 CAP;	// controller capabilities
 	u32 VS;		// version
@@ -135,6 +137,26 @@ volatile struct SubmissionEntry *admin_submit, *io_submit;
 volatile struct CompletionEntry *admin_complete, *io_complete;
 volatile u32 *admin_tail_doorbell, *io_tail_doorbell;
 u32 admin_submission_tail, admin_completion_head;
+u32 io_submission_tail, io_completion_head;
+
+void log_dword3_info(u64 dword3) {
+	serial_info("nvme: dword 3: 0x%x", dword3);
+	serial_info("    status code type: 0x%x", (dword3 >> 25) & 7);
+	serial_info("    status code: 0x%x", (dword3 >> 17) & 0xFF);
+}
+bool completion_check_success(u64 dword3) {
+	// status code type is not 0 (general status) then there is problem
+	if ((dword3 >> 25) & 7) {
+		log_dword3_info(dword3);
+		return false;
+	}
+	// status code is 0 and type is 0 means successful
+	if ((dword3 >> 17) & 0xFF) {
+		log_dword3_info(dword3);
+		return false;
+	}
+	return true;
+}
 
 void nvme_init(void) {
 	// disable controller and wait
@@ -155,12 +177,13 @@ void nvme_init(void) {
 		panic("nvme: controller does not support nvm command set!");
 
 	// IO completion queue size is 4, IO submission queue size is 6 (spec P318)
+	// host memory page is not modified, default 0 means 4 KiB
 	nvme_base->CC = (6 << 16) | (4 << 20);
 	nvme_base->AQA = (63 << 16) | 63;
 
 	// set admin submission/completion queue address
-	admin_submit = (struct SubmissionEntry *) kmalloc_page();
-	admin_complete = (struct CompletionEntry *) kmalloc_page();
+	admin_submit = (struct SubmissionEntry *) kcalloc_page();
+	admin_complete = (struct CompletionEntry *) kcalloc_page();
 	nvme_base->ASQ = page_virt_to_phys_addr((u64) admin_submit);
 	nvme_base->ACQ = page_virt_to_phys_addr((u64) admin_complete);
 
@@ -180,10 +203,10 @@ void nvme_init(void) {
 	// u32 *CQ0TDBL = (u32 *) nvme_base->doorbells + doorbell_stride;
 	// u32 *CQ1TDBL = (u32 *) nvme_base->doorbells + 3 * doorbell_stride;
 
-	io_complete = (struct CompletionEntry *) kmalloc_page();
+	io_complete = (struct CompletionEntry *) kcalloc_page();
 	admin_submit[admin_submission_tail] = (const struct SubmissionEntry) {0};
 	admin_submit[admin_submission_tail].opcode = 5;
-	admin_submit[admin_submission_tail].identifier = 1;
+	admin_submit[admin_submission_tail].identifier = 0;
 	admin_submit[admin_submission_tail].nsid = 0;
 	admin_submit[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
 	admin_submit[admin_submission_tail].dword11 = 1; // disable interrupts, physically contiguous
@@ -194,7 +217,7 @@ void nvme_init(void) {
 		asm volatile("nop");
 
 	// status code type (SCT) 0 usually means success, spec P138-140, 419-420
-	if ((admin_complete[admin_completion_head].dword3 >> 25) & 7)
+	if (!completion_check_success(admin_complete[admin_completion_head].dword3))
 		panic("nvme: failure when creating IO completion queue!");
 	serial_info(
 		"nvme: created IO completion queue at 0x%x",
@@ -203,10 +226,10 @@ void nvme_init(void) {
 	admin_completion_head++;
 
 	// create io submission queue (spec P102-103)
-	io_submit = (struct SubmissionEntry *) kmalloc_page();
+	io_submit = (struct SubmissionEntry *) kcalloc_page();
 	admin_submit[admin_submission_tail] = (const struct SubmissionEntry) {0};
 	admin_submit[admin_submission_tail].opcode = 1;
-	admin_submit[admin_submission_tail].identifier = 2;
+	admin_submit[admin_submission_tail].identifier = 0;
 	admin_submit[admin_submission_tail].nsid = 0;
 	admin_submit[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
 	admin_submit[admin_submission_tail].dword11 = (1 << 16) | 1; // completion identifier 1, physically contiguous
@@ -215,13 +238,16 @@ void nvme_init(void) {
 	while (!((admin_complete[admin_completion_head].dword3 >> 16) & 1))
 		asm volatile("nop");
 
-	if ((admin_complete[admin_completion_head].dword3 >> 25) & 7)
+	if (!completion_check_success(admin_complete[admin_completion_head].dword3))
 		panic("nvme: failure when creating IO submission queue!");
 	serial_info(
 		"nvme: created IO submission queue at 0x%x",
 		 page_virt_to_phys_addr((u64) io_submit)
 	);
 	admin_completion_head++;
+
+	io_submission_tail = 0;
+	io_completion_head = 0;
 
 	// serial_info("0x%x %u", admin_tail_doorbell, *admin_tail_doorbell);
 	// serial_info("0x%x", CQ0TDBL);
@@ -233,3 +259,70 @@ void nvme_init(void) {
 	// serial_info("%u %u", sizeof(struct CommandDword0), sizeof(struct SubmissionQueueEntry));
 }
 
+// TODO: tail wrap around after reaching 63 (max)
+// it should work, but might also be broken
+
+// NOTE: buffer must be dword (4 byte) aligned!
+bool nvme_read(u64 lba_start, u16 num_lbas, volatile void *buffer) {
+	// command set P48-51
+	io_submit[io_submission_tail] = (const struct SubmissionEntry) {0};
+	io_submit[io_submission_tail].opcode = 2;
+	io_submit[io_submission_tail].identifier = 2;
+	// ??? somehow nsid 1 works ???
+	io_submit[io_submission_tail].nsid = 1;
+
+	// dwords 10, 11 are bits 0:31, 32:63 of lba start respectively
+	io_submit[io_submission_tail].dword10 = lba_start & 0xFFFFFFFF;
+	io_submit[io_submission_tail].dword11 = (lba_start >> 32) & 0xFFFFFFFF;
+	// dword 12 is number of sectors minus 1, leave everything else as 0
+	io_submit[io_submission_tail].dword12 = num_lbas - 1;
+	io_submit[io_submission_tail].prp1 = page_virt_to_phys_addr((u64) buffer);
+
+	*io_tail_doorbell = ++io_submission_tail;
+	if (io_submission_tail == 64)
+		io_submission_tail = 0;
+
+	// wait for phase change / new entry in completion queue
+	while (!((io_complete[io_completion_head].dword3 >> 16) & 1))
+		asm volatile("nop");
+	if (!completion_check_success(io_complete[io_completion_head].dword3))
+		return false;
+
+	io_completion_head++;
+	if (io_completion_head == 64)
+		io_completion_head = 0;
+
+	return true;
+}
+
+// NOTE: buffer must be dword (4 byte) aligned!
+bool nvme_write(u64 lba_start, u16 num_lbas, volatile void *buffer) {
+	// command set P53-56
+	io_submit[io_submission_tail] = (const struct SubmissionEntry) {0};
+	io_submit[io_submission_tail].opcode = 1;
+	io_submit[io_submission_tail].identifier = 1;
+	// ??? somehow nsid 1 works ???
+	io_submit[io_submission_tail].nsid = 1;
+
+	// dwords 10, 11 are bits 0:31, 32:63 of lba start respectively
+	io_submit[io_submission_tail].dword10 = lba_start & 0xFFFFFFFF;
+	io_submit[io_submission_tail].dword11 = (lba_start >> 32) & 0xFFFFFFFF;
+	// dword 12 is number of sectors minus 1, leave everything else as 0
+	io_submit[io_submission_tail].dword12 = num_lbas - 1;
+	io_submit[io_submission_tail].prp1 = page_virt_to_phys_addr((u64) buffer);
+	*io_tail_doorbell = ++io_submission_tail;
+	if (io_submission_tail == 64)
+		io_submission_tail = 0;
+
+	// wait for phase change / new entry in completion queue
+	while (!((io_complete[io_completion_head].dword3 >> 16) & 1))
+		asm volatile("nop");
+	if (!completion_check_success(io_complete[io_completion_head].dword3))
+		return false;
+
+	io_completion_head++;
+	if (io_completion_head == 64)
+		io_completion_head = 0;
+
+	return true;
+}

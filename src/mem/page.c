@@ -121,24 +121,25 @@ PhysicalAddress page_virt_to_phys_addr(u64 virt) {
 	u64 pte = virt_addr_get_pte(virt);
 
 	if (!pml4e_query_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_PRESENT))
-		return -1;
+		return 0;
 	PDPT *pdpt_addr = pml4e_get_addr(&pml4_addr->table[pml4e]);
 	pdpt_addr = (PDPT *) ((u64) pdpt_addr + KERNEL_OFFSET);
 
 	if (!pdpe_query_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_PRESENT))
-		return -1;
+		return 0;
 	PDT *pdt_addr = pdpe_get_addr(&pdpt_addr->table[pdpe]);
 	pdt_addr = (PDT *) ((u64) pdt_addr + KERNEL_OFFSET);
 
 	if (!pde_query_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_PRESENT))
-		return -1;
+		return 0;
 	PT *pt_addr = pde_get_addr(&pdt_addr->table[pde]);
 	pt_addr = (PT *) ((u64) pt_addr + KERNEL_OFFSET);
 	
 	if (!pte_query_flag(&pt_addr->table[pte], PTE_PRESENT))
-		return -1;
+		return 0;
 	
-	return pte_get_addr(&pt_addr->table[pte]);
+	// add offset, which is just the "unaligned" portion of virtual address
+	return pte_get_addr(&pt_addr->table[pte]) + (virt & (PAGE_SIZE - 1));
 }
 
 void page_map(u64 virt, PhysicalAddress phys) {
