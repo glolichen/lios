@@ -30,7 +30,7 @@ struct __attribute__((packed)) PCIHeader {
 };
 
 // useful: base P49-?? 
-struct __attribute__((packed)) NVMERegisters {
+struct __attribute__((packed)) NVMEDevice {
 	u64 CAP;	// controller capabilities
 	u32 VS;		// version
 	u32 INTMS;	// interrupt mask set
@@ -74,14 +74,11 @@ struct __attribute__((packed)) CompletionEntry {
 	u32 dword3;
 };
 
-// need volatile for MMIO
-volatile struct NVMERegisters *nvme_base;
-
 u64 pci_get_addr(u64 base, u8 bus, u8 device, u8 function, u8 offset) {
 	return (bus << 20 | device << 15 | function << 12) + base + offset;
 }
 
-bool nvme_find(struct MCFG *mcfg) {
+struct NVMEDevice *nvme_find(struct MCFG *mcfg) {
 	for (size_t i = 0; i < (mcfg->header.length - sizeof(struct MCFG)) / sizeof(struct MCFGEntry); i++) {
 		struct MCFGEntry entry = mcfg->entries[i];
 		u64 nvme_base_addr = 0;
@@ -123,14 +120,14 @@ found_nvme_device:
 		for (u64 i = 0; i < (256 << 20) / PAGE_SIZE; i++)
 			page_unmap(VIRT_ADDR + i * PAGE_SIZE);
 
-		nvme_base = (struct NVMERegisters *) VIRT_ADDR;
+		u64 nvme_base = VIRT_ADDR;
 		page_map((u64) nvme_base, nvme_base_addr);
 		page_map((u64) nvme_base + 0x1000, nvme_base_addr + 0x1000);
 
-		return true;
+		return (struct NVMEDevice *) nvme_base;
 	}
 
-	return false;
+	return 0;
 }
 
 volatile struct SubmissionEntry *admin_submit, *io_submit;
@@ -158,50 +155,50 @@ bool completion_check_success(u64 dword3) {
 	return true;
 }
 
-void nvme_init(void) {
+void nvme_init(volatile struct NVMEDevice *nvme) {
 	// disable controller and wait
-	nvme_base->CC = 0;
+	nvme->CC = 0;
 
 	// otherwise the compiler optimizes away this loop
-	while (nvme_base->CSTS & 1)
+	while (nvme->CSTS & 1)
 		asm volatile("nop");
 
 	// capabilities check
-	u8 min_page_size = (nvme_base->CAP >> 48) & 0xF;
-	u8 max_page_size = (nvme_base->CAP >> 52) & 0xF;
+	u8 min_page_size = (nvme->CAP >> 48) & 0xF;
+	u8 max_page_size = (nvme->CAP >> 52) & 0xF;
 	if (!(0 >= min_page_size && 0 <= max_page_size))
 		panic("nvme: page size not supported!");
 
-	u8 command_sets = (nvme_base->CAP >> 37) & 0xFF;
+	u8 command_sets = (nvme->CAP >> 37) & 0xFF;
 	if (!(command_sets & 1))
 		panic("nvme: controller does not support nvm command set!");
 
 	// IO completion queue size is 4, IO submission queue size is 6 (spec P318)
 	// host memory page is not modified, default 0 means 4 KiB
-	nvme_base->CC = (6 << 16) | (4 << 20);
-	nvme_base->AQA = (63 << 16) | 63;
+	nvme->CC = (6 << 16) | (4 << 20);
+	nvme->AQA = (63 << 16) | 63;
 
 	// set admin submission/completion queue address
 	admin_submit = (struct SubmissionEntry *) kcalloc_page();
 	admin_complete = (struct CompletionEntry *) kcalloc_page();
-	nvme_base->ASQ = page_virt_to_phys_addr((u64) admin_submit);
-	nvme_base->ACQ = page_virt_to_phys_addr((u64) admin_complete);
+	nvme->ASQ = page_virt_to_phys_addr((u64) admin_submit);
+	nvme->ACQ = page_virt_to_phys_addr((u64) admin_complete);
 
 	// re-enable controller
-	nvme_base->CC |= 1;
-	while (!(nvme_base->CSTS & 1))
+	nvme->CC |= 1;
+	while (!(nvme->CSTS & 1))
 		asm volatile("nop");
 
 	admin_submission_tail = 0;
 	admin_completion_head = 0;
 	
 	// nvme over pcie spec P9-10, base spec P54
-	u32 doorbell_stride = 4 << ((nvme_base->CAP >> 32) & 0xF);
-	admin_tail_doorbell = (u32 *) (u64) nvme_base->doorbells;
+	u32 doorbell_stride = 4 << ((nvme->CAP >> 32) & 0xF);
+	admin_tail_doorbell = (u32 *) (u64) nvme->doorbells;
 	// we will create IO queue at slot 1
-	io_tail_doorbell = (u32 *) (u64) (nvme_base->doorbells + 2 * doorbell_stride);
-	// u32 *CQ0TDBL = (u32 *) nvme_base->doorbells + doorbell_stride;
-	// u32 *CQ1TDBL = (u32 *) nvme_base->doorbells + 3 * doorbell_stride;
+	io_tail_doorbell = (u32 *) (u64) (nvme->doorbells + 2 * doorbell_stride);
+	// u32 *CQ0TDBL = (u32 *) nvme->doorbells + doorbell_stride;
+	// u32 *CQ1TDBL = (u32 *) nvme->doorbells + 3 * doorbell_stride;
 
 	io_complete = (struct CompletionEntry *) kcalloc_page();
 	admin_submit[admin_submission_tail] = (const struct SubmissionEntry) {0};
@@ -263,7 +260,8 @@ void nvme_init(void) {
 // it should work, but might also be broken
 
 // NOTE: buffer must be dword (4 byte) aligned!
-bool nvme_read(u64 lba_start, u16 num_lbas, volatile void *buffer) {
+bool nvme_read(volatile struct NVMEDevice* nvme, u64 lba_start,
+			   u16 num_lbas, volatile void *buffer) {
 	// command set P48-51
 	io_submit[io_submission_tail] = (const struct SubmissionEntry) {0};
 	io_submit[io_submission_tail].opcode = 2;
@@ -292,11 +290,13 @@ bool nvme_read(u64 lba_start, u16 num_lbas, volatile void *buffer) {
 	if (io_completion_head == 64)
 		io_completion_head = 0;
 
+	serial_info("nvme: read %u blocks starting at offset 0x%x", num_lbas, lba_start);
 	return true;
 }
 
 // NOTE: buffer must be dword (4 byte) aligned!
-bool nvme_write(u64 lba_start, u16 num_lbas, volatile void *buffer) {
+bool nvme_write(volatile struct NVMEDevice *nvme, u64 lba_start,
+				u16 num_lbas, volatile void *buffer) {
 	// command set P53-56
 	io_submit[io_submission_tail] = (const struct SubmissionEntry) {0};
 	io_submit[io_submission_tail].opcode = 1;
@@ -324,5 +324,7 @@ bool nvme_write(u64 lba_start, u16 num_lbas, volatile void *buffer) {
 	if (io_completion_head == 64)
 		io_completion_head = 0;
 
+	serial_info("nvme: written %u blocks starting at offset 0x%x", num_lbas, lba_start);
 	return true;
 }
+

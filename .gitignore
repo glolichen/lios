@@ -2,6 +2,7 @@ bochslog.txt
 qemulog.txt
 *.o
 *.iso
+*.img
 iso/
 serial.out
 libgcc.a

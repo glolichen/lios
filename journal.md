@@ -13,8 +13,8 @@ Storage and filesystem! Unfortunately there's a list of very confusing and hard 
   * if we're in UEFI, which we should be, GRUB2 will provide us with the EFI system table
   * basically: **make QEMU use UEFI --> find EFI system table --> find RSDP --> find RSDT or XSDT --> find MCFG ACPI --> read memory mapped io base address --> read PCIe devices**
 2. write an NVMe driver...
-3. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
-4. filesystem (such as FAT or ext2)
+3. filesystem (such as FAT or ext2)
+4. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
 
 ### Step 1
 

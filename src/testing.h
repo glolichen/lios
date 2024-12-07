@@ -1,6 +1,8 @@
 #ifndef TESTING_H
 #define TESTING_H
 
-void run_tests(void);
+#include "pci/nvme.h"
+
+void run_tests(volatile struct NVMEDevice *nvme);
 
 #endif
