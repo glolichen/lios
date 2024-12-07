@@ -3,8 +3,8 @@
 
 #include "../const.h"
 
-u64 kmalloc_page(void);
-u64 kcalloc_page(void);
+void *kmalloc_page(void);
+void *kcalloc_page(void);
 void kfree_page(u64 addr);
 
 #endif

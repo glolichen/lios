@@ -1,5 +1,5 @@
 #include "const.h"
-#include "interrupt.h"
+#include "int/interrupt.h"
 #include "multiboot2.h"
 #include "testing.h"
 #include "panic.h"
@@ -15,8 +15,10 @@
 #include "mem/vmalloc.h"
 #include "mem/kmalloc.h"
 
-#include "pci/acpi.h"
-#include "pci/nvme.h"
+#include "file/acpi.h"
+#include "file/nvme.h"
+#include "file/gpt.h"
+#include "file/fat32.h"
 
 extern u64 kernel_end;
 
@@ -250,21 +252,17 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 		panic("no EFI system table found!");
 
 	struct MCFG *mcfg = find_acpi(efi_table);
-	if (!nvme_find(mcfg))
+	volatile struct NVMeDevice *nvme = nvme_find(mcfg);
+	if (!nvme)
 		panic("no NVMe device!");
-	nvme_init();
+	nvme_init(nvme);
+
+	struct Partition data_part = gpt_read();
+	fat32_init(data_part);
 
 	serial_info("setup ok");
 	vga_printf("setup ok\n");
 
-	u64 *write = (u64 *) vcalloc(NVME_LBA_SIZE);
-	write[0] = 0x42424242;
-	write[1] = 0x42424242;
-	nvme_write(1, 1, write);
-
-	volatile u64 *read = (u64 *) vcalloc(NVME_LBA_SIZE);
-	nvme_read(1, 1, read);
-	for (u32 i = 0; i < (NVME_LBA_SIZE / 8); i++)
-		serial_info("%u: 0x%x", i, read[i]);
+	// run_tests(nvme);
 }
 

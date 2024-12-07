@@ -1,28 +1,26 @@
 # LiOS Journal
 
-## NVME
+## File system
 
-Storage and filesystem! Unfortunately there's a list of very confusing and hard to understand steps needed...
-1. enumerate PCIe devices
-  * to do this we need to find the MCFG ACPI table
-  * to find that we need to find the RSDT/XSDT
-  * to find that we need to find the Root System Description Pointer (RSDP)
-  * to find that it depends on whether we're booted in BIOS of UEFI
-     * modern hardware uses UEFI so we probably should make the emulator use UEFI too
-     * but QEMU uses BIOS... need to somehow include OVMF so we can boot in UEFI
-  * if we're in UEFI, which we should be, GRUB2 will provide us with the EFI system table
-  * basically: **make QEMU use UEFI --> find EFI system table --> find RSDP --> find RSDT or XSDT --> find MCFG ACPI --> read memory mapped io base address --> read PCIe devices**
-2. write an NVMe driver...
-3. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
-4. filesystem (such as FAT or ext2)
+I have decided to use FAT32. It is quite simple (compared to ext2 and others) while also being quite capable (unlike FAT12/16, except for the 4GB file size limit) and widely supported on existing operating systems.
 
-### Step 1
+### Creating the disk image
 
-This works. We are able to make QEMU attach an NVMe drive to the emulated system, the OS can find the PCI configuration spaces using memory mapped IO, list the devices and are able to find this attached drive. It shows up as class code `0x1`, subclass `0x8`, prog IF `0x2`, which is an NVM Express Mass Storage Controller according to [this table](https://wiki.osdev.org/PCI#Class_Codes).
+Ideally I would like the disk image to have partitions which are formatted in our chosen file system, and for us to be able to mount that file on our local computer for reading and writing.
 
-![A picture of the emulator](./media/pci_nvme.png)
+1. Create the disk `qemu-img create -f raw disk.img [size]`
+2. Add a GUID Partition Table (GPT) `parted disk.img mklabel gpt`
+3. Create a FAT32 partition `parted disk.img mkpart primary fat32 0% 100%`
+4. Set up a loop device `sudo losetup -Pf --show disk.img`
+5. Format the partition (`parted` only creates) `sudo mkfs.fat -F 32 /dev/loopNp1`
 
-### Step 2
+### GPT
+
+Before we can even get to implementing/programming the file system, we need to first read the GUID Partition Table (GPT) to find a list of partitions, which is in Logical Block Address (LBA) 1, which by default is 512 bytes. The 32 LBAs from 2 to 33 are used to store partition entries. Each partition entry is 128 bytes so each LBA stores 4 partitions, so with 32 LBAs a maximum of 128 partitions is possible.
+
+LiOS has two very major restrictions on partitioning. Only the Microsoft basic data partition (which uses FAT) can be used, and the disk must only have one such Microsoft partition, which will be used by the OS for storage. This makes it a lot easier for me.
+
+## Programming the NVMe Device
 
 After locating the NVMe base address, we need to create the I/O Submission and Completion Queues, which involves sending commands to the device using the Admin Submission Queue. This entails configuring the Controller Capabilities field (CC), restarting the controller, and sending two commands. Base spec P138 and onwards is quite useful for decoding the posted completion queue entry.
 
@@ -32,16 +30,41 @@ I have also figured out how to send the "read" and "write" commands through the 
 
 Something quite neat here is because our `vmalloc` heap allocator works in sections of 16 bytes, we do not need to worry about NVMe's requirement of dword (4 byte) alignment for physical region page (PRP).
 
+Implemented in `309d017`.
+
+## Enumerate Devices
+
+This works. We are able to make QEMU attach an NVMe drive to the emulated system, the OS can find the PCI configuration spaces using memory mapped IO, list the devices and are able to find this attached drive. It shows up as class code `0x1`, subclass `0x8`, prog IF `0x2`, which is an NVM Express Mass Storage Controller according to [this table](https://wiki.osdev.org/PCI#Class_Codes).
+
+![A picture of the emulator](./media/pci_nvme.png)
+
+## File System -- Big Picture
+
+Storage and filesystem! Unfortunately there's a list of very confusing and hard to understand steps needed...
+
+1. enumerate PCIe devices
+  - to do this we need to find the MCFG ACPI table
+  - to find that we need to find the RSDT/XSDT
+  - to find that we need to find the Root System Description Pointer (RSDP)
+  - to find that it depends on whether we're booted in BIOS of UEFI
+     - modern hardware uses UEFI so we probably should make the emulator use UEFI too
+     - but QEMU uses BIOS... need to somehow include OVMF so we can boot in UEFI
+  - if we're in UEFI, which we should be, GRUB2 will provide us with the EFI system table
+  - basically: **make QEMU use UEFI --> find EFI system table --> find RSDP --> find RSDT or XSDT --> find MCFG ACPI --> read memory mapped io base address --> read PCIe devices**
+2. write an NVMe driver...
+3. filesystem (such as FAT or ext2)
+4. (write a layer of abstraction, the virtual filesystem (VFS), but I probably won't)
+
 ## Problems with real harwdare
 
 I had some problems booting on real hardware which I asked about on the osdev forums [here](https://forum.osdev.org/viewtopic.php?p=349986). There were a number of serious problems...
 
- * Stack pointer (`esp`/`rsp`) should point to the top of stack not the bottom.
- * Linked list created in `pmm.c` is not terminated with a zero, and in case the amount of physical memory is less than 2GB it will attempt to dereference some uninitialized garbage which will cause either a page fault or general protection fault.
- * Virtual memory manager's `alloc_list` has the same problem.
- * `[page structure]_set_addr` in `page.c` does not clear/zero the address before setting the new one.
- * When allocating a new page structure, that memory/page is not initialized, which may lead to a nonpresent structure being read as present. I made a function called `kcalloc_page` which initializes it to zero and use this for creating new page structures instead.
- * Memory used to store printed chars in `vga.c` is also uninitialized, use a new `vcalloc` function instead.
+- Stack pointer (`esp`/`rsp`) should point to the top of stack not the bottom.
+- Linked list created in `pmm.c` is not terminated with a zero, and in case the amount of physical memory is less than 2GB it will attempt to dereference some uninitialized garbage which will cause either a page fault or general protection fault.
+- Virtual memory manager's `alloc_list` has the same problem.
+- `[page structure]_set_addr` in `page.c` does not clear/zero the address before setting the new one.
+- When allocating a new page structure, that memory/page is not initialized, which may lead to a nonpresent structure being read as present. I made a function called `kcalloc_page` which initializes it to zero and use this for creating new page structures instead.
+- Memory used to store printed chars in `vga.c` is also uninitialized, use a new `vcalloc` function instead.
 
 As a result, LiOS can now run on real hardware!
 
@@ -93,9 +116,10 @@ Implemented in `c52fc2f`.
 ## Everything before
 
 I wrote most of this stuff during exam week last year and over the summer. This includes
- * A physical memory manager (allocates 4096 byte pages of physical memory)
- * A virtual memory manager (allocates sections of virtual memory in blocks)
- * Heap allocator (manages free virtual memory (which has to correspond to blocks of physical memory) and gives them away in any size (specifically, multiples of 4 bytes))
- * *VGA text mode* frame buffer, which cannot be used on UEFI hardware, which has to be supported to boot on modern hardware
- * Keyboard interrupts, obviously
+
+- A physical memory manager (allocates 4096 byte pages of physical memory)
+- A virtual memory manager (allocates sections of virtual memory in blocks)
+- Heap allocator (manages free virtual memory (which has to correspond to blocks of physical memory) and gives them away in any size (specifically, multiples of 4 bytes))
+- *VGA text mode* frame buffer, which cannot be used on UEFI hardware, which has to be supported to boot on modern hardware
+- Keyboard interrupts, obviously
 

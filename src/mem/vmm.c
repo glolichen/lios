@@ -8,8 +8,8 @@
 #include "../io/output.h"
 
 // NOTE: yeah it's really bad
-// eventually (i.e. in 3 years) I will switch to AVL trees
-// but now we just have a first fit flat list structure
+// also, the new pages allocated to store list nodes cannot be freed
+// but that shouldn't use too much memory, right?
 
 // node in linked list that stores free blocks
 struct VirtFreeListNode {
@@ -153,7 +153,6 @@ void *vmm_alloc(u32 pages) {
 			return (void *) start;
 		}
 		
-		// serial_info("VMM NODE start 0x%x size 0x%x", start, size);
 		cur = cur->next;
 	}
 

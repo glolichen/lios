@@ -5,9 +5,23 @@
 #include "mem/vmm.h"
 #include "mem/page.h"
 #include "mem/pmm.h"
+#include "file/nvme.h"
 
 void run_tests(void) {
-	// serial_info("===== TESTING BELOW =====");
+	serial_info("===== TESTING BELOW =====");
+
+	u64 *write = (u64 *) vcalloc(NVME_LBA_SIZE);
+	write[0] = 0x4242424241414141;
+	write[1] = 0x4242424241414141;
+	nvme_write(36, 1, write);
+
+	// volatile u64 *read = (u64 *) vcalloc(NVME_LBA_SIZE);
+	// nvme_read(nvme, 1, 1, read);
+	// for (u32 i = 0; i < (NVME_LBA_SIZE / 8); i++)
+	// 	serial_info("%u: 0x%x", i, read[i]);
+
+	return;
+
 	// u64 *kmem1 = (u64 *) kmalloc_page();
 	// u64 *kmem2 = (u64 *) kmalloc_page();
 	//
@@ -33,38 +47,38 @@ void run_tests(void) {
 	// kfree_page((u64) kmem3);
 
 	// heap allocation testing code
-	// void *mem1 = vmalloc(44);
-	// vmalloc_log_status();
-	// serial_info("address: 0x%x", mem1);
-	//
-	// void *mem2 = vmalloc(123);
-	// vmalloc_log_status();
-	// serial_info("address: 0x%x", mem2);
-	//
-	// void *mem3 = vmalloc(2302);
-	// vmalloc_log_status();
-	// serial_info("address: 0x%x", mem3);
-	//
-	// vfree(mem1);
-	// vfree(mem2);
-	// vfree(mem3);
-	// vmalloc_log_status();
-	//
-	// void *mem4 = vmalloc(75 + 64 * 8);
-	// vmalloc_log_status();
-	// serial_info("address: 0x%x", mem4);
-	//
-	// void *mem5 = vmalloc(12000);
-	// vmalloc_log_status();
-	// serial_info("address: 0x%x", mem5);
-	//
-	// vmm_log_status();
-	// vmalloc_log_status();
-	// vfree(mem4);
-	// vmalloc_log_status();
-	// vfree(mem5);
-	// vmalloc_log_status();
-	// vmm_log_status();
+	void *mem1 = vmalloc(44);
+	vmalloc_log_status();
+	serial_info("address: 0x%x", mem1);
+
+	void *mem2 = vmalloc(123);
+	vmalloc_log_status();
+	serial_info("address: 0x%x", mem2);
+
+	void *mem3 = vmalloc(2302);
+	vmalloc_log_status();
+	serial_info("address: 0x%x", mem3);
+
+	vfree(mem1);
+	vfree(mem2);
+	vfree(mem3);
+	vmalloc_log_status();
+
+	void *mem4 = vmalloc(75 + 64 * 8);
+	vmalloc_log_status();
+	serial_info("address: 0x%x", mem4);
+
+	void *mem5 = vmalloc(12000);
+	vmalloc_log_status();
+	serial_info("address: 0x%x", mem5);
+
+	vmm_log_status();
+	vmalloc_log_status();
+	vfree(mem4);
+	vmalloc_log_status();
+	vfree(mem5);
+	vmalloc_log_status();
+	vmm_log_status();
 
 	// virtual memory manager testing
 	// u64 *thing1 = (u64 *) vmm_alloc(3);

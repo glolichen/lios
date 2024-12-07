@@ -2,9 +2,9 @@
 #include "io.h"
 #include "output.h"
 #include "../const.h"
-#include "../interrupt.h"
+#include "../int/interrupt.h"
 
-void keyboard_routine(struct InterruptData *data) {
+void keyboard_routine(const struct InterruptData *data) {
 	u8 scan = inb(0x60);
 	if (scan < MAX_KEYCODE) {
 		vga_printf("%s\n", KEYCODES[scan]);

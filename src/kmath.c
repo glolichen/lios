@@ -1,7 +1,7 @@
 #include "kmath.h"
 #include "const.h"
 
-// some math functions that have to implemented by manually
+// some math functions that have to implemented manually
 u32 absolute(i32 num) {
 	return num > 0 ? num : -num;
 }

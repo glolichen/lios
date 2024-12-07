@@ -5,7 +5,7 @@
 #include "../io/output.h"
 #include "kmalloc.h"
 #include "../const.h"
-#include "../interrupt.h"
+#include "../int/interrupt.h"
 
 PML4 *pml4_addr;
 
@@ -152,7 +152,7 @@ void page_map(u64 virt, PhysicalAddress phys) {
 
 	PDPT *pdpt_addr = pml4e_get_addr(&pml4_addr->table[pml4e]);
 	if (!pml4e_query_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_PRESENT)) {
-		u64 allocated_pdpt_addr = kcalloc_page();
+		u64 allocated_pdpt_addr = (u64) kcalloc_page();
 		pml4e_set_addr(&pml4_addr->table[pml4e], allocated_pdpt_addr - KERNEL_OFFSET);
 		pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_PRESENT);
 		pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_WRITABLE);
@@ -163,7 +163,7 @@ void page_map(u64 virt, PhysicalAddress phys) {
 
 	PDT *pdt_addr = pdpe_get_addr(&pdpt_addr->table[pdpe]);
 	if (!pdpe_query_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_PRESENT)) {
-		u64 allocated_pdt_addr = kcalloc_page();
+		u64 allocated_pdt_addr = (u64) kcalloc_page();
 		pdpe_set_addr(&pdpt_addr->table[pdpe], allocated_pdt_addr - KERNEL_OFFSET);
 		pdpe_set_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_PRESENT);
 		pdpe_set_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_WRITABLE);
@@ -174,7 +174,7 @@ void page_map(u64 virt, PhysicalAddress phys) {
 
 	PT *pt_addr = pde_get_addr(&pdt_addr->table[pde]);
 	if (!pde_query_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_PRESENT)) {
-		u64 allocated_pt_addr = kcalloc_page();
+		u64 allocated_pt_addr = (u64) kcalloc_page();
 		pde_set_addr(&pdt_addr->table[pde], allocated_pt_addr - KERNEL_OFFSET);
 		pde_set_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_PRESENT);
 		pde_set_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_WRITABLE);
@@ -252,7 +252,7 @@ void page_init(u64 *pml4) {
 	pml4_addr = (PML4 *) pml4;
 }
 
-void page_fault_handler(struct InterruptData *data) {
+void page_fault_handler(const struct InterruptData *data) {
 	u64 address;
 	asm volatile("mov %0, cr2" : "=g"(address));
 	serial_error("address: 0x%x", address);

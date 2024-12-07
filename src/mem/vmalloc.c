@@ -197,7 +197,7 @@ void release_if_unused(struct HeapBitmapNode *prev, struct HeapBitmapNode *node)
 	serial_info("vmalloc: released heap block at 0x%x", node);
 }
 
-void vfree(void *mem) {
+void vfree(const void *mem) {
 	// I love C.
 	u64 size = ((struct HeapBlockHeader *) ((u64) mem - sizeof(struct HeapBlockHeader)))->size;
 	// move it back to get the "real" location

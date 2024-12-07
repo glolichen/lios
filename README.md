@@ -44,8 +44,8 @@ Sort of based on Linux, with other self-imposed janks as well.
    * NVM Express Base, revision 2.1
    * NVM Command Set, revision 1.1
    * NVMe over PCIe, revision 1.1
- * NVMe base specification and NVMe over PCIe specification ([here](https://nvmexpress.org/specifications/)) (specifically used base revision 2.1, 8/5/24)
+ * [Microsoft FAT32 specification](https://academy.cba.mit.edu/classes/networking_communications/SD/FAT.pdf)
 
 write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`
-create qemu drive: `qemu-img create -f raw disk.img [size]`
+create qemu drive: `qemu-img create -f raw disk.img [size]` and create GPT with `cfdisk disk.img`
 
