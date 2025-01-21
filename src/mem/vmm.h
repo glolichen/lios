@@ -1,7 +1,7 @@
 #ifndef VMM_H
 #define VMM_H
 
-#include "../const.h"
+#include "../util/const.h"
 
 void vmm_init(void);
 void *vmm_alloc(u32 pages);

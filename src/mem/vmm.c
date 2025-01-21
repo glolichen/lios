@@ -2,9 +2,9 @@
 #include "vmm.h"
 #include "page.h"
 #include "pmm.h"
-#include "../const.h"
-#include "../panic.h"
-#include "../kmath.h"
+#include "../util/const.h"
+#include "../util/panic.h"
+#include "../util/kmath.h"
 #include "../io/output.h"
 
 // NOTE: yeah it's really bad

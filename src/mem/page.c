@@ -4,7 +4,7 @@
 #include "pmm.h"
 #include "../io/output.h"
 #include "kmalloc.h"
-#include "../const.h"
+#include "../util/const.h"
 #include "../int/interrupt.h"
 
 PML4 *pml4_addr;

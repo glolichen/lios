@@ -1,13 +1,15 @@
-#include "const.h"
-#include "int/interrupt.h"
-#include "multiboot2.h"
 #include "testing.h"
-#include "panic.h"
-#include "kmath.h"
+
+#include "int/interrupt.h"
 
 #include "io/serial.h"
 #include "io/output.h"
 #include "io/vga.h"
+
+#include "util/const.h"
+#include "util/panic.h"
+#include "util/kmath.h"
+#include "util/multiboot2.h"
 
 #include "mem/vmm.h"
 #include "mem/pmm.h"

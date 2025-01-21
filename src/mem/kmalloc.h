@@ -1,7 +1,7 @@
 #ifndef KMALLOC_H
 #define KMALLOC_H
 
-#include "../const.h"
+#include "../util/const.h"
 
 void *kmalloc_page(void);
 void *kcalloc_page(void);

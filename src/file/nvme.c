@@ -2,7 +2,7 @@
 
 #include "nvme.h"
 #include "acpi.h"
-#include "../panic.h"
+#include "../util/panic.h"
 #include "../io/output.h"
 #include "../mem/page.h"
 #include "../mem/kmalloc.h"
@@ -113,7 +113,7 @@ found_nvme_device:
 
 volatile struct SubmissionEntry *admin_submit, *io_submit;
 volatile struct CompletionEntry *admin_complete, *io_complete;
-volatile u32 *admin_tail_doorbell, *io_tail_doorbell;
+volatile u32 *admin_submit_doorbell, *io_submit_doorbell, *io_complete_doorbell;
 u32 admin_submission_tail, admin_completion_head;
 u32 io_submission_tail, io_completion_head;
 
@@ -176,11 +176,10 @@ void nvme_init(volatile struct NVMeDevice *nvme) {
 	
 	// nvme over pcie spec P9-10, base spec P54
 	u32 doorbell_stride = 4 << ((nvme->CAP >> 32) & 0xF);
-	admin_tail_doorbell = (u32 *) (u64) nvme->doorbells;
+	admin_submit_doorbell = (u32 *) (u64) nvme->doorbells;
 	// we will create IO queue at slot 1
-	io_tail_doorbell = (u32 *) (u64) (nvme->doorbells + 2 * doorbell_stride);
-	// u32 *CQ0TDBL = (u32 *) nvme->doorbells + doorbell_stride;
-	// u32 *CQ1TDBL = (u32 *) nvme->doorbells + 3 * doorbell_stride;
+	io_submit_doorbell = (u32 *) (u64) (nvme->doorbells + 2 * doorbell_stride);
+	io_complete_doorbell = (u32 *) (u64) (nvme->doorbells + 3 * doorbell_stride);
 
 	io_complete = (struct CompletionEntry *) kcalloc_page();
 	admin_submit[admin_submission_tail] = (const struct SubmissionEntry) {0};
@@ -190,7 +189,7 @@ void nvme_init(volatile struct NVMeDevice *nvme) {
 	admin_submit[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
 	admin_submit[admin_submission_tail].dword11 = 1; // disable interrupts, physically contiguous
 	admin_submit[admin_submission_tail].prp1 = page_virt_to_phys_addr((u64) io_complete);
-	*admin_tail_doorbell = ++admin_submission_tail;
+	*admin_submit_doorbell = ++admin_submission_tail;
 	// wait for phase change / new entry in completion queue
 	while (!((admin_complete[admin_completion_head].dword3 >> 16) & 1))
 		asm volatile("nop");
@@ -213,7 +212,7 @@ void nvme_init(volatile struct NVMeDevice *nvme) {
 	admin_submit[admin_submission_tail].dword10 = (63 << 16) | 1; // size 64 identifier 1
 	admin_submit[admin_submission_tail].dword11 = (1 << 16) | 1; // completion identifier 1, physically contiguous
 	admin_submit[admin_submission_tail].prp1 = page_virt_to_phys_addr((u64) io_submit);
-	*admin_tail_doorbell = ++admin_submission_tail;
+	*admin_submit_doorbell = ++admin_submission_tail;
 	while (!((admin_complete[admin_completion_head].dword3 >> 16) & 1))
 		asm volatile("nop");
 
@@ -257,19 +256,19 @@ bool nvme_read(u64 lba_start, u16 num_lbas, void *buffer) {
 	io_submit[io_submission_tail].dword12 = num_lbas - 1;
 	io_submit[io_submission_tail].prp1 = page_virt_to_phys_addr((u64) buffer);
 
-	*io_tail_doorbell = ++io_submission_tail;
-	if (io_submission_tail == 64)
-		io_submission_tail = 0;
+	u8 phase = (io_complete[io_completion_head].dword3 >> 16) & 1;
+	io_submission_tail = (io_submission_tail + 1) % 64;
+	*io_submit_doorbell = io_submission_tail;
 
 	// wait for phase change / new entry in completion queue
-	while (!((io_complete[io_completion_head].dword3 >> 16) & 1))
+	while (((io_complete[io_completion_head].dword3 >> 16) & 1) == phase)
 		asm volatile("nop");
+
+	io_completion_head = (io_completion_head + 1) % 64;
+	*io_complete_doorbell = io_completion_head;
+
 	if (!completion_check_success(io_complete[io_completion_head].dword3))
 		return false;
-
-	io_completion_head++;
-	if (io_completion_head == 64)
-		io_completion_head = 0;
 
 	serial_info("nvme: read %u block(s) starting at offset 0x%x", num_lbas, lba_start);
 	return true;
@@ -290,21 +289,21 @@ bool nvme_write(u64 lba_start, u16 num_lbas, void *buffer) {
 	// dword 12 is number of sectors minus 1, leave everything else as 0
 	io_submit[io_submission_tail].dword12 = num_lbas - 1;
 	io_submit[io_submission_tail].prp1 = page_virt_to_phys_addr((u64) buffer);
-	*io_tail_doorbell = ++io_submission_tail;
-	if (io_submission_tail == 64)
-		io_submission_tail = 0;
+
+	u8 phase = (io_complete[io_completion_head].dword3 >> 16) & 1;
+	io_submission_tail = (io_submission_tail + 1) % 64;
+	*io_submit_doorbell = io_submission_tail;
 
 	// wait for phase change / new entry in completion queue
-	while (!((io_complete[io_completion_head].dword3 >> 16) & 1))
+	while (((io_complete[io_completion_head].dword3 >> 16) & 1) == phase)
 		asm volatile("nop");
+
+	io_completion_head = (io_completion_head + 1) % 64;
+	*io_complete_doorbell = io_completion_head;
+
 	if (!completion_check_success(io_complete[io_completion_head].dword3))
 		return false;
-
-	io_completion_head++;
-	if (io_completion_head == 64)
-		io_completion_head = 0;
 
 	serial_info("nvme: written %u block(s) starting at offset 0x%x", num_lbas, lba_start);
 	return true;
 }
-

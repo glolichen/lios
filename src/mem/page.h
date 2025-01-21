@@ -1,7 +1,7 @@
 #ifndef PAGE_H
 #define PAGE_H
 
-#include "../const.h"
+#include "../util/const.h"
 #include "../int/interrupt.h"
 
 void page_init(u64 *pml4);

@@ -2,7 +2,7 @@
 #define ACPI_H
 
 #include "efi.h"
-#include "../const.h"
+#include "../util/const.h"
 
 // https://wiki.osdev.org/RSDP
 // https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/05_ACPI_Software_Programming_Model/ACPI_Software_Programming_Model.html#root-system-description-pointer-rsdp-structure

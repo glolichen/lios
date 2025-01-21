@@ -1,9 +1,9 @@
 #include "gpt.h"
-#include "../const.h"
+#include "../util/const.h"
+#include "../util/panic.h"
 #include "../file/nvme.h"
 #include "../io/output.h"
 #include "../mem/vmalloc.h"
-#include "../panic.h"
 
 // https://en.wikipedia.org/wiki/GUID_Partition_Table#Partition_table_header_(LBA_1)
 struct __attribute__((packed)) GPTHeader {
@@ -25,7 +25,7 @@ struct __attribute__((packed)) PartitionEntry {
 };
 
 struct Partition gpt_read(void) {
-	struct GPTHeader *header = (struct GPTHeader *) vmalloc(NVME_LBA_SIZE);
+	struct GPTHeader *header = (struct GPTHeader *) vcalloc(NVME_LBA_SIZE);
 	nvme_read(1, 1, header);
 
 	// serial_info("gpt: header");
@@ -52,7 +52,7 @@ struct Partition gpt_read(void) {
 	struct Partition part = {0};
 
 	// each LBA has 4 entries, or pointer to array of length 4
-	struct PartitionEntry (*entries)[4] = (struct PartitionEntry (*)[4]) vmalloc(NVME_LBA_SIZE);
+	struct PartitionEntry (*entries)[4] = (struct PartitionEntry (*)[4]) vcalloc(NVME_LBA_SIZE);
 	struct PartitionEntry entry;
 
 	// LBAs 2-33 are partition entries

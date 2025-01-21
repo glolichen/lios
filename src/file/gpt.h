@@ -2,7 +2,7 @@
 #define GPT_H
 
 #include "nvme.h"
-#include "../const.h"
+#include "../util/const.h"
 
 struct __attribute__((packed)) Partition {
 	// values are INCLUSIVE!

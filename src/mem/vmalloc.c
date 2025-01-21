@@ -2,9 +2,9 @@
 #include "vmalloc.h"
 #include "vmm.h"
 #include "../io/output.h"
-#include "../panic.h"
-#include "../const.h"
-#include "../kmath.h"
+#include "../util/panic.h"
+#include "../util/const.h"
+#include "../util/kmath.h"
 
 #define SET_BIT(num, pos) (num |= ((u64) 1) << (pos))
 #define UNSET_BIT(num, pos) (num &= ~(((u64) 1) << (pos)))

@@ -1,7 +1,7 @@
 #ifndef VMALLOC_H
 #define VMALLOC_H
 
-#include "../const.h"
+#include "../util/const.h"
 
 void vmalloc_init(void);
 void *vmalloc(u64 size);

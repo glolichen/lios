@@ -14,6 +14,10 @@ Ideally I would like the disk image to have partitions which are formatted in ou
 4. Set up a loop device `sudo losetup -Pf --show disk.img`
 5. Format the partition (`parted` only creates) `sudo mkfs.fat -F 32 /dev/loopNp1`
 
+### Reading and writing
+
+To read and write for testing (i.e. from my real computer) simply set up the loop device (`sudo losetup -Pf --show disk.img`) and udiskie will automatically mount it.
+
 ### GPT
 
 Before we can even get to implementing/programming the file system, we need to first read the GUID Partition Table (GPT) to find a list of partitions, which is in Logical Block Address (LBA) 1, which by default is 512 bytes. The 32 LBAs from 2 to 33 are used to store partition entries. Each partition entry is 128 bytes so each LBA stores 4 partitions, so with 32 LBAs a maximum of 128 partitions is possible.
@@ -84,13 +88,13 @@ VGA text mode is no longer supported when booting with UEFI and only works with 
 
 In VGA graphical mode you draw pixels instead of letters, and I have no interest in creating a graphical user interface, so the interface will still be terminal based. We will have to download a PC Screen Font (PSF), decode it to figure out which pixels need to be drawn for each characters, and draw them.
 
-We havev no filesystem currently, so we can't just read a PSF file. We will instead hard code the font directly in the C code. Other methods described [here](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) involve quering the BIOS in real mode, fetching them from VGA registers, or linker trickery. This sounds really complicated and hard coding sounds simple enough.
+We have no filesystem currently, so we can't just read a PSF file. We will instead hard code the font directly in the C code. Other methods described [here](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) involve quering the BIOS in real mode, fetching them from VGA registers, or linker trickery. This sounds really complicated and hard coding sounds simple enough.
 
 Steps:
 
 1. download 8x16 VGA font [here](https://www.zap.org.au/projects/console-fonts-zap/)
 2. use [this](https://github.com/talamus/rw-psf) tool to convert PSF to plain text
-3. use script (util/psftxt2ints.cpp) to convert plain text to integers
+3. write a script (util/psftxt2ints.cpp) to convert plain text to integers
 
 Implemented in `1b32127` and `45ee8c1`.
 

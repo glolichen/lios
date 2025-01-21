@@ -1,5 +1,5 @@
 #include "interrupt.h"
-#include "../const.h"
+#include "../util/const.h"
 #include "../io/keyboard.h"
 #include "../io/output.h"
 #include "../io/io.h"

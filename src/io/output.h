@@ -2,7 +2,7 @@
 #define OUTPUT_H
 
 #include <stdarg.h>
-#include "../const.h"
+#include "../util/const.h"
 
 u32 vga_printf(const char *format, ...);
 

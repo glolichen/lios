@@ -1,11 +1,10 @@
 #include "vga.h"
-#include "../panic.h"
-#include "../mem/page.h"
-#include "../mem/pmm.h"
-#include "../mem/vmalloc.h"
-#include "../kmath.h"
 #include "output.h"
 #include "vgafont.h"
+#include "../util/panic.h"
+#include "../util/kmath.h"
+#include "../mem/page.h"
+#include "../mem/vmalloc.h"
 
 #define QUERY_BIT(num, pos) ((num >> (pos)) & ((u64) 1))
 

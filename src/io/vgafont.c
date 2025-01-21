@@ -1,5 +1,5 @@
 #include "vgafont.h"
-#include "../const.h"
+#include "../util/const.h"
 
 // code-generated values, see util/psftxt2ints.cpp
 const u64 VGA_FONT[] = {

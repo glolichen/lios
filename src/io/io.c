@@ -1,5 +1,5 @@
 #include "io.h"
-#include "../const.h"
+#include "../util/const.h"
 
 u8 inb(u16 port) {
 	u8 val;

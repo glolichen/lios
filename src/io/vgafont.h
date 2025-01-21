@@ -1,7 +1,7 @@
 #ifndef VGAFONT_H 
 #define VGAFONT_H 
 
-#include "../const.h"
+#include "../util/const.h"
 
 extern const u64 VGA_FONT[];
 

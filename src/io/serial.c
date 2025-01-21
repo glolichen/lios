@@ -1,7 +1,7 @@
 #include <stdbool.h>
 
 #include "io.h"
-#include "../const.h"
+#include "../util/const.h"
 
 void serial_configure_baud_rate(u16 port, u16 divisor) {
 	outb(GET_SERIAL_LINE_COMMAND_PORT(port), SERIAL_LINE_ENABLE_DLAB);

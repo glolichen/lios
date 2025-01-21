@@ -1,7 +1,7 @@
 #ifndef PMM_H
 #define PMM_H
 
-#include "../const.h"
+#include "../util/const.h"
 
 void pmm_set_total(u64 size);
 void pmm_add_block(u64 start, u64 end);

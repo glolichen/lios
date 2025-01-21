@@ -1,7 +1,7 @@
 #include "acpi.h"
 #include "nvme.h"
-#include "../const.h"
-#include "../panic.h"
+#include "../util/const.h"
+#include "../util/panic.h"
 #include "../io/output.h"
 
 #include "efi.h"

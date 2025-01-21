@@ -1,9 +1,9 @@
 #include <stdbool.h>
 #include "pmm.h"
 #include "../io/output.h"
-#include "../const.h"
-#include "../panic.h"
-#include "../kmath.h"
+#include "../util/const.h"
+#include "../util/panic.h"
+#include "../util/kmath.h"
 #include "page.h"
 
 #define TWO_GB 2147483648
