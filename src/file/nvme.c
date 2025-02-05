@@ -75,13 +75,8 @@ struct NVMeDevice *nvme_find(const struct MCFG *mcfg) {
 					if (header->vendor_id == 0xFFFF)
 						continue;
 
-					vga_printf("PCIe device: bus %u, device %u, function %u\n", bus, device, function);
 					if (header->class_code == 1 && header->subclass == 8 && header->prog_if == 2) {
 						serial_info("bar0, bar1: 0x%x 0x%x", header->bar0, header->bar1);
-						vga_printf("    vendor id 0x%x, device id 0x%x\n", header->vendor_id, header->device_id);
-						vga_printf("    class code 0x%x, subclass 0x%x, prog if 0x%x\n",
-							header->class_code, header->subclass, header->prog_if);
-						vga_printf("    header type 0x%x\n", header->header_type);
 
 						// https://wiki.osdev.org/NVMe#Base_Address_IO
 						nvme_base_addr = ((u64) header->bar1 << 32) | (header->bar0 & 0xFFFFFFF0);
@@ -307,3 +302,4 @@ bool nvme_write(u64 lba_start, u16 num_lbas, void *buffer) {
 	serial_info("nvme: written %u block(s) starting at offset 0x%x", num_lbas, lba_start);
 	return true;
 }
+

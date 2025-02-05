@@ -9,7 +9,9 @@
 #include "util/const.h"
 #include "util/panic.h"
 #include "util/kmath.h"
+#include "util/hexdump.h"
 #include "util/multiboot2.h"
+#include "util/misc.h"
 
 #include "mem/vmm.h"
 #include "mem/pmm.h"
@@ -266,5 +268,11 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	vga_printf("setup ok\n");
 
 	// run_tests(nvme);
+
+	struct FAT32_ReadResult file_data = fat32_read("poopdog", "txt");
+	vga_printf("the size is %u\n", file_data.size_or_error.size);
+	hexdump(file_data.ptr, file_data.size_or_error.size, 1);
+
+	vfree(file_data.ptr);
 }
 

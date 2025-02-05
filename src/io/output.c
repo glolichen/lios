@@ -219,3 +219,15 @@ u32 serial_error(const char *format, ...) {
 	return length;
 }
 
+u32 serial_print_no_fancy(const char *format, ...) {
+	if (!PRINT_INFO_SERIAL)
+		return 0;
+	
+	va_list arg;
+	va_start(arg, format);
+
+	u32 length = printf(SERIAL, format, &arg);
+	va_end(arg);
+
+	return length;
+}

@@ -4,6 +4,11 @@
 
 I have decided to use FAT32. It is quite simple (compared to ext2 and others) while also being quite capable (unlike FAT12/16, except for the 4GB file size limit) and widely supported on existing operating systems.
 
+The LiOS implementation of FAT32 will NOT support:
+- directories (this means we are capped at [65536](https://serverfault.com/a/1013729) files but I will probably never get to that point)
+- long file names
+- more than 1 sector per cluster
+
 ### Creating the disk image
 
 Ideally I would like the disk image to have partitions which are formatted in our chosen file system, and for us to be able to mount that file on our local computer for reading and writing.

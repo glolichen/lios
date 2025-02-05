@@ -45,6 +45,7 @@ Sort of based on Linux, with other self-imposed janks as well.
    * NVM Command Set, revision 1.1
    * NVMe over PCIe, revision 1.1
  * [Microsoft FAT32 specification](https://academy.cba.mit.edu/classes/networking_communications/SD/FAT.pdf)
+ * [ELF specification](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f00/docs/elf.pdf)
 
 write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`
 create qemu drive: `qemu-img create -f raw disk.img [size]` and create GPT with `cfdisk disk.img`
