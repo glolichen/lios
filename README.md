@@ -13,9 +13,9 @@ An experimental x86_64 operating system written from scratch in C.
    * Kernel heap allocator (using linked lists and bitmap)
  * Supports UEFI
 
-## To Do
+## To Do (aka Technical Debt)
 
- * CPUID stuff?
+ * Find a way to not read the entire FAT when doing anything with one file
  * Virtual address allocator can only use 1 4KiB page, which is only 128 linked list nodes. So if the memory gets too fragmented the allocator will completely break.
  * Filesystem and hard disk/solid state drive driver
  * Processes

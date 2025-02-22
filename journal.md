@@ -9,6 +9,10 @@ The LiOS implementation of FAT32 will NOT support:
 - long file names
 - more than 1 sector per cluster
 
+### Reading
+
+We can now read files from a FAT32 formatted volume. I will think about what a good layer of abstraction for this is, and what the interface with the kernel or user programs would look like.
+
 ### Creating the disk image
 
 Ideally I would like the disk image to have partitions which are formatted in our chosen file system, and for us to be able to mount that file on our local computer for reading and writing.

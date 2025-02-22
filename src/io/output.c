@@ -165,7 +165,7 @@ u32 vga_printf(const char *format, ...) {
 }
 
 u32 serial_debug(const char *format, ...) {
-	if (!PRINT_INFO_SERIAL)
+	if (!PRINT_DEBUG_SERIAL)
 		return 0;
 	
 	print(SERIAL, "DEBUG: ", 7);
@@ -195,6 +195,9 @@ u32 serial_info(const char *format, ...) {
 	return length;
 }
 u32 serial_warn(const char *format, ...) {
+	if (!PRINT_WARN_SERIAL)
+		return 0;
+
 	print(SERIAL, "WARN:  ", 7);
 
 	va_list arg;
@@ -220,8 +223,8 @@ u32 serial_error(const char *format, ...) {
 }
 
 u32 serial_print_no_fancy(const char *format, ...) {
-	if (!PRINT_INFO_SERIAL)
-		return 0;
+	// if (!PRINT_INFO_SERIAL)
+	// 	return 0;
 	
 	va_list arg;
 	va_start(arg, format);

@@ -43,13 +43,18 @@ void add_block(u32 pages) {
 	 *  => bitmap = (block_total - 16) / (8 * section_size + 1)
 	 * but data has to be integer, but we use integer division so it's already floored
 	 */
+	// // round to nearest multiple of 8 (u64 is 8 bytes)
+	// u32 bitmap = ceil_u32_div(pages * PAGE_SIZE, SECTION_SIZE);
+	// bitmap = (bitmap + 7) & ~7;
+	// u32 block_total = PAGE_SIZE * pages + bitmap;
+
 	serial_info("vmalloc: request extra block of size %u pages", pages);
-	u32 block_total = PAGE_SIZE * pages;
-	u32 bitmap = round_u32_div(block_total - 16, 8 * SECTION_SIZE + 1);
+	u32 bitmap = ceil_u32_div(ceil_u32_div(pages * PAGE_SIZE, SECTION_SIZE), 8);
 	// round to nearest multiple of 8 (u64 is 8 bytes)
 	bitmap = (bitmap + 7) & ~7;
+	u32 block_total = PAGE_SIZE * pages + bitmap;
 
-	struct HeapBitmapNode *addr = (struct HeapBitmapNode *) vmm_alloc(pages);
+	struct HeapBitmapNode *addr = (struct HeapBitmapNode *) vmm_alloc(ceil_u32_div(block_total, PAGE_SIZE));
 	addr->next = 0;
 	addr->total_size = block_total;
 	addr->bitmap_size = bitmap;
@@ -128,9 +133,15 @@ void *vmalloc(u64 size) {
 	struct HeapBitmapNode *cur = heap_head;
 	while (cur != 0) {
 		u32 bitmap_size = cur->bitmap_size;
+		serial_info("vmalloc: size %u %u", bitmap_size, cur->total_size);
 		u64 sections_found = 0, block_start = 0;
 		for (u32 i = 0; i < bitmap_size / 8; i++) {
 			// TODO: speedup by adding 64 sections if the bitmap is 0
+			if (cur->mem[i] == 0 && sections_found + 64 < sections_needed) {
+				sections_found += 64;
+				continue;
+			}
+
 			for (u32 j = 0; j < 64; j++) {
 				// 1 = used, set to zero
 				if (QUERY_BIT(cur->mem[i], j))

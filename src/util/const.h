@@ -13,6 +13,9 @@ typedef int64_t i64;
 typedef uint64_t u64;
 
 #define PRINT_INFO_SERIAL 1
+#define PRINT_DEBUG_SERIAL 1
+#define PRINT_WARN_SERIAL 1
+
 #define KERNEL_OFFSET 0xFFFFFFFF80000000
 
 #define GET_SERIAL_DATA_PORT(base) (base)

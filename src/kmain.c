@@ -269,10 +269,11 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 
 	// run_tests(nvme);
 
-	struct FAT32_ReadResult file_data = fat32_read("poopdog", "txt");
-	vga_printf("the size is %u\n", file_data.size_or_error.size);
-	hexdump(file_data.ptr, file_data.size_or_error.size, 1);
+	// struct FAT32_ReadResult file_data = fat32_open_and_read("hello", "c");
+	// vga_printf("the size is %u\n", file_data.size_or_error.size);
+	// hexdump(file_data.ptr, file_data.size_or_error.size, 1);
+	// vfree(file_data.ptr);
 
-	vfree(file_data.ptr);
+	fat32_new_file("file", "txt");
 }
 
