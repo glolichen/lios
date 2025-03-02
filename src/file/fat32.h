@@ -5,22 +5,11 @@
 
 typedef u32 FileDescriptor;
 
-enum FAT32_ReadError {
-	FAT32_READ_NAME_TOO_LONG,
-	FAT32_READ_EXT_TOO_LONG,
-	FAT32_READ_NOT_FOUND,
-};
-enum FAT32_NewFileError {
-	FAT32_NEW_FILE_NAME_TOO_LONG,
-	FAT32_NEW_FILE_EXT_TOO_LONG,
-	FAT32_NEW_FILE_EXISTS,
-	FAT32_NEW_FILE_NO_SPACE,
-};
-struct FAT32_ReadResult {
-	void *ptr;
+struct FAT32_OpenResult {
+	u32 cluster;
 	union {
-		u64 size;
-		enum FAT32_ReadError error;
+		u32 size;
+		enum FAT32_OpenError error;
 	} size_or_error;
 };
 struct FAT32_NewFileResult {
@@ -29,7 +18,8 @@ struct FAT32_NewFileResult {
 };
 
 void fat32_init(struct Partition part);
-struct FAT32_ReadResult fat32_open_and_read(const char *name, const char *ext);
+struct FAT32_OpenResult fat32_open(const char *name, const char *ext);
+u32 fat32_read(u32 cluster, u32 size, void *buffer);
 struct FAT32_NewFileResult fat32_new_file(const char *name, const char *ext);
 
 #endif

@@ -5,6 +5,7 @@
 #include "../util/panic.h"
 #include "../util/const.h"
 #include "../util/kmath.h"
+#include "../util/misc.h"
 
 #define SET_BIT(num, pos) (num |= ((u64) 1) << (pos))
 #define UNSET_BIT(num, pos) (num &= ~(((u64) 1) << (pos)))
@@ -181,8 +182,7 @@ void *vmalloc(u64 size) {
 
 void *vcalloc(u64 size) {
 	u8 *mem = (u8 *) vmalloc(size);
-	for (u64 i = 0; i < size; i++)
-		mem[i] = 0;
+	memset(mem, 0, size);
 	return (void *) mem;
 }
 

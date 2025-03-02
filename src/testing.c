@@ -6,14 +6,31 @@
 #include "mem/page.h"
 #include "mem/pmm.h"
 #include "file/nvme.h"
+#include "file/fat32.h"
+#include "util/hexdump.h"
+
+void fat32_read_test() {
+	struct FAT32_OpenResult file_data = fat32_open("poopdog", "txt");
+	if (file_data.cluster == 0)
+		vga_printf("error: %s\n", FAT32_OPEN_ERRORS[file_data.size_or_error.error]);
+	else {
+		vga_printf("size: %u\n", file_data.size_or_error.size);
+		void *buffer = vcalloc(file_data.size_or_error.size * 512);
+		fat32_read(file_data.cluster, file_data.size_or_error.size, buffer);
+		hexdump(buffer, file_data.size_or_error.size * 512, true);
+		vfree(buffer);
+	}
+}
 
 void run_tests(void) {
-	serial_info("===== TESTING BELOW =====");
+	fat32_read_test();
 
-	u64 *write = (u64 *) vcalloc(NVME_LBA_SIZE);
-	write[0] = 0x4242424241414141;
-	write[1] = 0x4242424241414141;
-	nvme_write(36, 1, write);
+	// serial_info("===== TESTING BELOW =====");
+	//
+	// u64 *write = (u64 *) vcalloc(NVME_LBA_SIZE);
+	// write[0] = 0x4242424241414141;
+	// write[1] = 0x4242424241414141;
+	// nvme_write(36, 1, write);
 
 	// volatile u64 *read = (u64 *) vcalloc(NVME_LBA_SIZE);
 	// nvme_read(nvme, 1, 1, read);

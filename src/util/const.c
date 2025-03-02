@@ -138,3 +138,16 @@ const char *KEYCODES[] = {
 };
 
 const u32 MAX_KEYCODE = sizeof(KEYCODES) / sizeof(KEYCODES[0]);
+
+const char *FAT32_OPEN_ERRORS[] = {
+	"name too long",
+	"extension too long",
+	"file not found",
+};
+const char *FAT32_NEW_FILE_ERRORS[] = {
+	"name too long",
+	"extension too long",
+	"file exists",
+	"no space remaining",
+};
+

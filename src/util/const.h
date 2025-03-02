@@ -179,8 +179,23 @@ enum {
 
 #define PAGE_SIZE 4096
 #define VMM_MAGIC 0x420F1337
-//
+
 // defualt value
 #define	NVME_LBA_SIZE 512
+
+enum FAT32_OpenError {
+	FAT32_OPEN_NAME_TOO_LONG,
+	FAT32_OPEN_EXT_TOO_LONG,
+	FAT32_OPEN_NOT_FOUND,
+};
+extern const char *FAT32_OPEN_ERRORS[];
+
+enum FAT32_NewFileError {
+	FAT32_NEW_FILE_NAME_TOO_LONG,
+	FAT32_NEW_FILE_EXT_TOO_LONG,
+	FAT32_NEW_FILE_EXISTS,
+	FAT32_NEW_FILE_NO_SPACE,
+};
+extern const char *FAT32_NEW_FILE_ERRORS[];
 
 #endif

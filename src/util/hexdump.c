@@ -40,6 +40,9 @@ void hexdump(const void *src, u64 len, bool find_readable) {
 		serial_print_no_fancy("|\n");
 	}
 
+	if (len % 16 == 0)
+		return;
+
 	serial_print_no_fancy("DEBUG:     ");
 	u32 chars_printed = 0;
 	for (u64 i = 0; i < len % 16; i++) {
@@ -51,6 +54,10 @@ void hexdump(const void *src, u64 len, bool find_readable) {
 			chars_printed += 2;
 		}
 	}
+
+	if (!find_readable)
+		return;
+
 	for (u32 i = chars_printed; i < 51; i++)
 		serial_print_no_fancy(" ");
 	serial_print_no_fancy("|");

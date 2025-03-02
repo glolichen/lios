@@ -81,7 +81,7 @@ u32 find_free_FAT_cluster(void) {
 }
 
 // FAT spec P14
-bool is_end_of_cluster(u32 num) {
+bool is_ending_cluster(u32 num) {
 	u64 temp = num & 0xFFFFFFF;
 	return temp >= 0xFFFFFF8 && num <= 0xFFFFFFF;
 }
@@ -113,38 +113,6 @@ u32 check_directory_entry_for_file(u32 sector_num, const char *name, const char 
 	return 0;
 }
 
-// read a file given its cluster
-// returns vmalloc'ed pointer, remember to vfree!
-struct FAT32_ReadResult read_file_from_cluster_num(u32 file_start_cluster) {
-	// first to store directory entry, then file data
-	u64 current_sector = file_start_cluster, num_sectors = 0;
-	do {
-		num_sectors++;
-		current_sector = FAT[current_sector];
-		if (current_sector == 0)
-			panic("FAT32: broken FAT!");
-	} while (!is_end_of_cluster(current_sector));
-
-	void *result = vcalloc(num_sectors * 512);
-	current_sector = file_start_cluster;
-
-	for (u32 i = 0; i < num_sectors; i++) {
-		// FAT spec P28-29
-		u32 sector = data_start_lba + current_sector - 2;
-		current_sector = FAT[current_sector];
-		nvme_read(sector, 1, (void *) ((u64) result + i * 512));
-		// memcpy((void *) ((u64) result + i * 512), temp_data, 512);
-	}
-
-	if (!is_end_of_cluster(current_sector))
-		panic("FAT32: what is going on?");
-
-	struct FAT32_ReadResult ret;
-	ret.ptr = result;
-	ret.size_or_error.size = num_sectors * 512;
-	return ret;
-}
-
 // given the name of a file, find the cluster the file is stored in
 // if file does not exist, returns 0
 u32 get_cluster_num(const char *name, const char *ext) {
@@ -153,24 +121,23 @@ u32 get_cluster_num(const char *name, const char *ext) {
 	if (strlen(ext) > 3)
 		return 0;
 
-	u64 file_sector = 0;
-	u64 current_sector = root_dir_lba;
+	u64 file_cluster = 0, directory_cluster = root_dir_lba;
 	do {
-		file_sector = check_directory_entry_for_file(current_sector, name, ext);
-		if (file_sector != 0)
+		file_cluster = check_directory_entry_for_file(directory_cluster, name, ext);
+		if (file_cluster != 0)
 			break;
 
-		current_sector = FAT[current_sector];
-		if (current_sector == 0)
+		directory_cluster = FAT[directory_cluster];
+		if (directory_cluster == 0)
 			panic("FAT32: broken FAT!");
-	} while (!is_end_of_cluster(current_sector));
+	} while (!is_ending_cluster(directory_cluster));
 
-	if (file_sector == 0)
+	if (file_cluster == 0)
 		return 0;
 
-	serial_info("FAT32: found cluster for file, is 0x%x", file_sector);
+	serial_info("FAT32: found cluster for file, is 0x%x", file_cluster);
 
-	return file_sector;
+	return file_cluster;
 }
 
 // initialize
@@ -209,28 +176,63 @@ void fat32_init(struct Partition part) {
 	update_FAT();
 }
 
-// read a file
-// on error, results ptr = 0, size = error code
-struct FAT32_ReadResult fat32_open_and_read(const char *name, const char *ext) {
-	struct FAT32_ReadResult ret = { 0, { 0 } };
+// opens a file, and returns its cluster number and size
+struct FAT32_OpenResult fat32_open(const char *name, const char *ext) {
+	struct FAT32_OpenResult ret = { 0, { 0 } };
 	if (strlen(name) > 8) {
-		ret.size_or_error.error = FAT32_READ_NAME_TOO_LONG;
+		ret.size_or_error.error = FAT32_OPEN_NAME_TOO_LONG;
 		return ret;
 	}
 	if (strlen(ext) > 3) {
-		ret.size_or_error.error = FAT32_READ_EXT_TOO_LONG;
+		ret.size_or_error.error = FAT32_OPEN_EXT_TOO_LONG;
 		return ret;
 	}
 
-	u64 file_sector = get_cluster_num(name, ext);
-	if (file_sector == 0) {
-		ret.size_or_error.error = FAT32_READ_NOT_FOUND;
+	u32 file_cluster = get_cluster_num(name, ext);
+	if (file_cluster == 0) {
+		ret.size_or_error.error = FAT32_OPEN_NOT_FOUND;
 		return ret;
 	}
 
-	serial_info("FAT32: found cluster for file, is 0x%x", file_sector);
+	ret.cluster = file_cluster;
 
-	return read_file_from_cluster_num(file_sector);
+	u64 current_sector = file_cluster, num_clusters = 0;
+	do {
+		num_clusters++;
+		current_sector = FAT[current_sector];
+		if (current_sector == 0)
+			panic("FAT32: broken FAT!");
+	} while (!is_ending_cluster(current_sector));
+	ret.size_or_error.size = num_clusters;
+
+	return ret;
+}
+
+// read a file: given starting cluster number and number of clusters
+u32 fat32_read(u32 cluster, u32 size, void *buffer) {
+	for (u32 i = 0; i < size; i++) {
+		// FAT spec P28-29
+		u32 sector = data_start_lba + cluster - 2;
+
+		// the last cluster we read should be an ending cluster
+		// everything other, should not be an ending cluster
+		// then, set the current cluster to the next one
+		if (i < size - 1) {
+			if (is_ending_cluster(cluster))
+				return 1;
+			cluster = FAT[cluster];
+		}
+
+		// this still reads from the cluster that was before
+		// we moveed to the next cluster
+		nvme_read(sector, 1, (void *) ((u64) buffer + i * 512));
+	}
+
+	// further sanity checking
+	if (!is_ending_cluster(cluster))
+		return 1;
+
+	return 0;
 }
 
 // create a new blank file
@@ -252,15 +254,80 @@ struct FAT32_NewFileResult fat32_new_file(const char *name, const char *ext) {
 		return ret;
 	}
 
-	u32 first_cluster = find_free_FAT_cluster();
-	FAT[first_cluster] = 0xFFFFFFF;
+	// mark one cluster as used
+	u32 file_first_cluster = find_free_FAT_cluster();
+	FAT[file_first_cluster] = 0xFFFFFFF;
 
-	vga_printf("set sector %u\n", first_cluster);
-	nvme_write(FAT_start_lba + (first_cluster / 512), 1, (void *) ((u64) FAT + first_cluster - first_cluster % 512));
+	// find open directory entry
+	u64 usable_index = 16;
+	u64 current_cluster = root_dir_lba;
+	struct FAT_DirectoryEntry *directory = (struct FAT_DirectoryEntry *) vcalloc(512);
+	do {
+		// check if current_sector has any open entries
+		// file_sector = check_directory_entry_for_file(current_sector, name, ext);
+		nvme_read(current_cluster - 2 + data_start_lba, 1, directory);
+		for (u32 i = 0; i < 16; i++) {
+			// assume name is readable = in use
+			// [32, 126] are readable characters
+			bool is_readable = true;
+			for (u32 j = 0; j < 11; j++) {
+				u8 c = directory[i].DIR_Name[j];
+				if (c < 32 || c > 126) {
+					is_readable = false;
+					break;
+				}
+			}
+			if (!is_readable) {
+				usable_index = i;
+				break;
+			}
+		}
 
-	// FREE 3 AND 4
+		if (usable_index != 16)
+			break;
+
+		current_cluster = FAT[current_cluster];
+		if (current_cluster == 0)
+			panic("FAT32: broken FAT!");
+	} while (!is_ending_cluster(current_cluster));
+
+	struct FAT_DirectoryEntry entry = {
+		.DIR_Name = { 0 },
+		.DIR_Attr = 0x20,
+		.DIR_NTRes = 0,
+		.DIR_CrtTimeTenth = 0,
+		.DIR_CrtTime = 0,
+		.DIR_CrtDate = 0,
+		.DIR_LstAccDate = 0,
+		.DIR_FstClusHI = file_first_cluster & 0xFFFF0000,
+		.DIR_WrtTime = 0,
+		.DIR_WrtDate = 0,
+		.DIR_FstClusLO = file_first_cluster & 0x0000FFFF,
+		.DIR_FileSize = 512,
+	};
+	for (u32 i = 0; i < 11; i++)
+		entry.DIR_Name[i] = ' ';
+	for (u32 i = 0; i < strlen(name); i++)
+		entry.DIR_Name[i] = toupper(name[i]);
+	for (u32 i = 0; i < strlen(ext); i++)
+		entry.DIR_Name[i + 8] = toupper(ext[i]);
+
+	directory[usable_index] = entry;
+	
+	// write changes to disk
+
+	// occupy one entry in the FAT
+	nvme_write(FAT_start_lba + (file_first_cluster / 512), 1, (void *) ((u64) FAT + file_first_cluster - file_first_cluster % 512));
+	// write file information to directory structure
+	nvme_write(current_cluster - 2 + data_start_lba, 1, directory);
+
+	// zero out first sector of file
+	void *empty = vcalloc(512);
+	nvme_write(file_first_cluster - 2 + data_start_lba, 1, empty);
+	vfree(empty);
+
+	vfree(directory);
 
 	return ret;
-	// return read_file_from_cluster_num(file_sector);
 }
 
