@@ -217,11 +217,14 @@ populate_pt_low_loop:
 	mov al, 0
 	out dx, al
 
+	xchg bx, bx
+
 	lgdt [no_offset(gdt_ptr)]
 	jmp 0x08:long_mode_start
 
 bits 64
 long_mode_start:
+	xchg bx, bx
 	mov ax, 0x10
 	mov ds, ax
 	mov es, ax
@@ -238,6 +241,8 @@ higher_half_text:
 	mov qword [gdt_ptr + 2], gdt_start
 	lgdt [gdt_ptr]
 
+	xchg bx, bx
+
 	; move to registers for use in kmain
 	; https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI
 	mov rdi, gdt_tss
@@ -248,6 +253,9 @@ higher_half_text:
 	mov r9, pdpt_low
 	push pdt_low
 	push pt_low
+
+	xchg bx, bx
+
 	call kmain
 	jmp $
 
@@ -316,24 +324,42 @@ tss_end:
 gdt_ptr:
 	dw no_offset(gdt_end) - no_offset(gdt_start) - 1
 	dq no_offset(gdt_start)
+
 gdt_start:
 gdt_null:
 	dd 0x0
 	dd 0x0
-gdt_code:
+
+gdt_kernel_code:
 	dw 0xFFFF ; limit
 	dw 0x0 ; base
 	db 0x0 ; base
 	db 0x9A ; access
 	db 0xAF ; flags and limit
 	db 0x0 ; base
-gdt_data:
+gdt_kernel_data:
 	dw 0xFFFF
 	dw 0x0
 	db 0x0
 	db 0x92
-	db 0xAF ; maybe 0xAF? (before 0xCF)
+	db 0xAF
 	db 0x0
+
+gdt_user_code:
+	dw 0xFFFF
+	dw 0x0
+	db 0x0
+	db 0xFA
+	db 0xAF
+	db 0x0
+gdt_user_data:
+	dw 0xFFFF
+	dw 0x0
+	db 0x0
+	db 0xF2
+	db 0xAF
+	db 0x0
+
 ; filled by C code in kmain
 gdt_tss:
 	dw 0 ; limit

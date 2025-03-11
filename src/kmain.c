@@ -24,6 +24,8 @@
 #include "file/gpt.h"
 #include "file/fat32.h"
 
+#include "proc/elf.h"
+
 extern u64 kernel_end;
 
 struct __attribute__((packed)) GDTEntryTSS {
@@ -39,21 +41,23 @@ struct __attribute__((packed)) GDTEntryTSS {
 
 void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_addr,
 			u64 pml4[512], u64 pdpt_low[512], u64 pdt_low[512], u64 pt_low[512]) {
+
 	serial_init();
 	serial_info("kernel end: 0x%x", (u64) &kernel_end - KERNEL_OFFSET);
 
-	u64 limit = tss_end - tss_start;
-	tss_entry->limit = limit & 0xFFFF;
-	tss_entry->base_low = tss_start & 0xFFFF;
-	tss_entry->base_mid = (tss_start >> 16) & 0xFF;
-	tss_entry->access = 0x89;
-	tss_entry->flags_and_limit = 0x40;
-	tss_entry->flags_and_limit = ((limit >> 16) & 0xF) | (0 << 4);
-	tss_entry->base_high = (tss_start >> 24) & 0xFF;
-	tss_entry->base_highest = (tss_start >> 32) & 0xFFFFFFFF;
-	tss_entry->reserved = 0;
-	asm volatile("ltr %d0" :: "r"(0x18));
-	serial_info("TSS loaded");
+	// FIXME: TSS setup is broken!! Fix this to go to user mode
+	// u64 limit = tss_end - tss_start;
+	// tss_entry->limit = limit & 0xFFFF;
+	// tss_entry->base_low = tss_start & 0xFFFF;
+	// tss_entry->base_mid = (tss_start >> 16) & 0xFF;
+	// tss_entry->access = 0x89;
+	// tss_entry->flags_and_limit = 0x40;
+	// tss_entry->flags_and_limit = ((limit >> 16) & 0xF) | (0 << 4);
+	// tss_entry->base_high = (tss_start >> 24) & 0xFF;
+	// tss_entry->base_highest = (tss_start >> 32) & 0xFFFFFFFF;
+	// tss_entry->reserved = 0;
+	// asm volatile("ltr %d0" :: "r"(0x18));
+	// serial_info("TSS loaded");
 
 	serial_info("multiboot pointer: 0x%x", mboot_addr);
 	
@@ -226,6 +230,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 		}
 		tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 	}
+	// FSF COPIED CODE END
 
 	pmm_init_final();
 	pmm_log_status();
@@ -267,9 +272,9 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	serial_info("setup ok");
 	vga_printf("setup ok\n");
 
-	// run_tests(nvme);
-	
-	// run_tests();
+	// elf_load("HLWORLD", "OUT");
+
+	run_tests();
 
 	// hexdump(file_data.ptr, file_data.size_or_error.size, 1);
 	// vfree(file_data.ptr);

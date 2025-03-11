@@ -7,20 +7,28 @@ An experimental x86_64 operating system written from scratch in C.
  * Bootstrapping to long mode
  * Interrupts (only keyboard implemented)
  * Printing to VGA graphical mode and serial
- * Some basic memory management
+ * Minimum viable memory manager/allocator
    * Uses paging (obviously)
    * Linked list based page frame and virtual address allocator
    * Kernel heap allocator (using linked lists and bitmap)
- * Supports UEFI
+ * Supports UEFI and runs on real hardware
+ * Basic file system functionality:
+   * reading and writing from NVMe SSD volume
+   * Only FAT32 file system
+   * Can read and create new files, but not write data
+ * Basic ELF/program loading functionality
 
-## To Do (aka Technical Debt)
+## To Do
 
+Goals:
+ 1. Load ELF programs (probably no shared objects, no C library, but need to create a basic syscall ABI)
+ 2. Processes
+ 3. Userspace shell program
+
+Backburner:
  * Find a way to not read the entire FAT when doing anything with one file
  * Virtual address allocator can only use 1 4KiB page, which is only 128 linked list nodes. So if the memory gets too fragmented the allocator will completely break.
- * Filesystem and hard disk/solid state drive driver
- * Processes
- * ELF program loading and userspace programs
- * Userspace shell program
+ * Implement writing to a file, beyond simply creating new files
 
 ## Memory Layout
 
@@ -46,6 +54,7 @@ Sort of based on Linux, with other self-imposed janks as well.
    * NVMe over PCIe, revision 1.1
  * [Microsoft FAT32 specification](https://academy.cba.mit.edu/classes/networking_communications/SD/FAT.pdf)
  * [ELF specification](https://www.cs.cmu.edu/afs/cs/academic/class/15213-f00/docs/elf.pdf)
+ * [ELF on Wikipedia](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)
 
 write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`
 create qemu drive: `qemu-img create -f raw disk.img [size]` and create GPT with `cfdisk disk.img`

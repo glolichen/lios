@@ -248,6 +248,7 @@ struct FAT32_NewFileResult fat32_new_file(const char *name, const char *ext) {
 		return ret;
 	}
 
+	// TODO: why doesn't this work??
 	u64 file_sector = get_cluster_num(name, ext);
 	if (file_sector != 0) {
 		ret.error = FAT32_NEW_FILE_EXISTS;

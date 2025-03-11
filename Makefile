@@ -1,4 +1,4 @@
-OBJECTS = src/loader.o src/kmain.o src/util/const.o src/int/interrupt.o src/int/interrupts.o src/util/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/util/kmath.o src/file/acpi.o src/file/nvme.o src/file/gpt.o src/file/fat32.o src/util/misc.o src/util/hexdump.o
+OBJECTS = src/loader.o src/kmain.o src/util/const.o src/int/interrupt.o src/int/interrupts.o src/util/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/util/kmath.o src/file/acpi.o src/file/nvme.o src/file/gpt.o src/file/fat32.o src/util/misc.o src/util/hexdump.o src/proc/elf.o
 
 ASM = nasm
 ASM_FLAGS = -f elf64
@@ -17,7 +17,7 @@ QEMU_FLAGS = -boot c \
 			 -no-reboot \
 			 -serial file:serial.out \
 			 -M q35 \
-			 -m 4G \
+			 -m 8G \
 			 -cpu qemu64 \
 			 -bios copy_OVMF.4m.fd \
 			 -monitor stdio \

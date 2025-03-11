@@ -1,5 +1,17 @@
 # LiOS Journal
 
+## Programs
+
+Some other parts of the file system can wait for now, such as some optimizations and importantly the ability to write files. With our newfound ability to read files, we can now turn our attention to reading and executing programs.
+
+Since it's well-documented, decently simple and used on many Unix-like operating systems (Linux, FreeBSD, etc), I will use the [Executable and Linkable Format (ELF)](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format). I won't implement shared objects since that is too complicated and programs in this basic operating system wouldn't be able to take advantage of them anyway.
+
+### Side Quest
+
+The time has finally come to fix the memory allocator problem I procrastinated for almost half a year: the fact that free and allocated linked lists in the virtual address allocator can each only use 1 page (4096 bytes), limiting the max number of notes to 169. This is quite bad for obvious reasons as we will probably be making more than 169 allocations and there is a real change for the free list to become extremely fragmented.
+
+Before, those lists reside in higher half physical memory (above the 2GiB mark) so they are not "identity mapped" (speaking loosely: 0xFFFF800... + physical address is mapped to the physical address). This is complicated, and out of feat the 2GiB lower region becomes filled up with random junk and causing an out of memory situation. Fortunately it looks like I was too paranoid and right now `kmalloc` is used to allocate a whopping 16 pages, or 64 kilobytes, out of 2097152 bytes of lower memory available. For this reason the free and allocated lists will not come directly from the `kmalloc` allocator.
+
 ## File system
 
 I have decided to use FAT32. It is quite simple (compared to ext2 and others) while also being quite capable (unlike FAT12/16, except for the 4GB file size limit) and widely supported on existing operating systems.
@@ -12,6 +24,11 @@ The LiOS implementation of FAT32 will NOT support:
 ### Reading
 
 We can now read files from a FAT32 formatted volume. I will think about what a good layer of abstraction for this is, and what the interface with the kernel or user programs would look like.
+
+Currently, we can do the following:
+ - create a new file
+ - read information about a file, getting its size and starting cluster
+ - read a file to memory, given its cluster and size (which have been retrieved from the previous step)
 
 ### Creating the disk image
 

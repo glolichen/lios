@@ -7,23 +7,70 @@
 #include "mem/pmm.h"
 #include "file/nvme.h"
 #include "file/fat32.h"
+#include "util/const.h"
 #include "util/hexdump.h"
 
-void fat32_read_test() {
-	struct FAT32_OpenResult file_data = fat32_open("poopdog", "txt");
+void fat32_test(void) {
+	struct FAT32_OpenResult file_data = fat32_open("HLWORLD", "OUT");
 	if (file_data.cluster == 0)
-		vga_printf("error: %s\n", FAT32_OPEN_ERRORS[file_data.size_or_error.error]);
+		vga_printf("file read error: %s\n", FAT32_OPEN_ERRORS[file_data.size_or_error.error]);
 	else {
-		vga_printf("size: %u\n", file_data.size_or_error.size);
+		vga_printf("file read size: %u\n", file_data.size_or_error.size);
 		void *buffer = vcalloc(file_data.size_or_error.size * 512);
 		fat32_read(file_data.cluster, file_data.size_or_error.size, buffer);
 		hexdump(buffer, file_data.size_or_error.size * 512, true);
 		vfree(buffer);
 	}
+
+	struct FAT32_NewFileResult info = fat32_new_file("peddie", "die");
+	if (info.fd != 0)
+		vga_printf("new file creation successful at %u\n", info.fd);
+	else
+		vga_printf("new file creation error: %s\n", FAT32_NEW_FILE_ERRORS[info.error]);
 }
 
 void run_tests(void) {
-	fat32_read_test();
+	vga_printf("starting tests\n");
+
+	fat32_test();
+
+	vmm_log_status();
+	vmalloc_log_status();
+
+	void *thing = vmalloc(5000);
+	vfree(thing);
+
+	vga_printf("ok\n");
+	
+	u64 addrs[5];
+	for (int i = 0; i < 5; i++) {
+		vga_printf("%u\n", i);
+		serial_info("COMEHERE %u", i);
+		addrs[i] = (u64) vmalloc(5000);
+	}
+
+	vga_printf("ok\n");
+
+	// for (int i = 0; i < 5; i++) {
+	// 	vga_printf("%u\n", i);
+	// 	vfree((void *) addrs[i]);
+	// }
+	for (int i = 0; i < 5; i += 2) {
+		vga_printf("%u\n", i);
+		vfree((void *) addrs[i]);
+	}
+	vmm_log_status();
+	vmalloc_log_status();
+	for (int i = 1; i < 5; i += 2) {
+		vga_printf("%u\n", i);
+		vfree((void *) addrs[i]);
+	}
+
+	vga_printf("tests complete\n");
+
+	vmm_log_status();
+	vmalloc_log_status();
+
 
 	// serial_info("===== TESTING BELOW =====");
 	//
@@ -72,7 +119,7 @@ void run_tests(void) {
 	vmalloc_log_status();
 	serial_info("address: 0x%x", mem2);
 
-	void *mem3 = vmalloc(2302);
+	void *mem3 = vmalloc(252);
 	vmalloc_log_status();
 	serial_info("address: 0x%x", mem3);
 
