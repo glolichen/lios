@@ -3,6 +3,7 @@
 
 #include "file/nvme.h"
 
-void run_tests(void);
+void test_div0(void);
+void test_run_tests(void);
 
 #endif

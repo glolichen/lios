@@ -10,6 +10,10 @@
 #include "util/const.h"
 #include "util/hexdump.h"
 
+void test_div0(void) {
+	asm volatile("mov rax, 0; mov rbx, 0; div rbx");
+}
+
 void fat32_test(void) {
 	struct FAT32_OpenResult file_data = fat32_open("HLWORLD", "OUT");
 	if (file_data.cluster == 0)
@@ -29,10 +33,12 @@ void fat32_test(void) {
 		vga_printf("new file creation error: %s\n", FAT32_NEW_FILE_ERRORS[info.error]);
 }
 
-void run_tests(void) {
+void test_run_tests(void) {
 	vga_printf("starting tests\n");
 
 	fat32_test();
+
+	return;
 
 	vmm_log_status();
 	vmalloc_log_status();
@@ -59,8 +65,8 @@ void run_tests(void) {
 		vga_printf("%u\n", i);
 		vfree((void *) addrs[i]);
 	}
-	vmm_log_status();
-	vmalloc_log_status();
+	// vmm_log_status();
+	// vmalloc_log_status();
 	for (int i = 1; i < 5; i += 2) {
 		vga_printf("%u\n", i);
 		vfree((void *) addrs[i]);
@@ -68,8 +74,8 @@ void run_tests(void) {
 
 	vga_printf("tests complete\n");
 
-	vmm_log_status();
-	vmalloc_log_status();
+	// vmm_log_status();
+	// vmalloc_log_status();
 
 
 	// serial_info("===== TESTING BELOW =====");

@@ -16,10 +16,10 @@ _start:
 	mov rdi, 1
 	mov rsi, text
 	mov rdx, length
-	; syscall
-	int 0x80
+	syscall
+	; int 0x80
 
 	mov rax, 60
 	mov rdi, 0
-	; syscall
-	int 0x80
+	syscall
+	; int 0x80

@@ -195,6 +195,10 @@ void page_map(u64 virt, PhysicalAddress phys/*, bool writable, bool execute*/) {
 	else
 		pt_addr = (PT *) ((u64) pt_addr + KERNEL_OFFSET);
 
+	pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+	pdpe_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+	pde_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+
 	pte_set_addr(&pt_addr->table[pte], phys);
 	pte_set_flag(&pt_addr->table[pte], PTE_PRESENT);
 	pte_set_flag(&pt_addr->table[pte], PTE_WRITABLE);
@@ -264,8 +268,9 @@ void page_unmap(u64 virt) {
 }
 
 
-void page_init(u64 *pml4) {
-	pml4_addr = (PML4 *) pml4;
+void page_set_pml4(u64 phys, u64 virt) {
+	asm volatile("mov cr3, %0" :: "r"(phys));
+	pml4_addr = (PML4 *) virt;
 }
 
 void page_fault_handler(const struct InterruptData *data) {

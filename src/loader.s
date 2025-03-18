@@ -53,13 +53,18 @@ checks_complete:
 	and eax, 0x7FFFFFFF
 	mov cr0, eax
 
+	; FIXME: THIS WILL MAKE ALL PAGES USER INSTEAD OF SUPERVISOR
+	; REMOVE ALL "or eax, 0x4" ONCE DONE TESTING
+
 	; PML4 points to PDPT
 	mov eax, no_offset(pdpt_low)
 	or eax, 0x03
+	or eax, 0x4
 	mov [no_offset(pml4)], eax
 	
 	mov eax, no_offset(pdpt_high)
 	or eax, 0x03
+	or eax, 0x4
 	mov [no_offset(pml4) + 511 * 8], eax
 
 	; move PML4 to CR3
@@ -70,23 +75,28 @@ checks_complete:
 	; 510 * 8 bytes = second to last PDPTE
 	mov eax, no_offset(pdt_high)
 	or eax, 0x03
+	or eax, 0x4
 	mov [no_offset(pdpt_high) + 510 * 8], eax
 
 	mov eax, no_offset(pdt_high) + 512 * 8
 	or eax, 0x03
+	or eax, 0x4
 	mov [no_offset(pdpt_high) + 511 * 8], eax
 
 	; first 2 PDPTEs point to low PDTs
 	mov eax, no_offset(pdt_low)
 	or eax, 0x03
+	or eax, 0x4
 	mov [no_offset(pdpt_low)], eax
 
 	mov eax, no_offset(pdt_low) + 512 * 8
 	or eax, 0x03
+	or eax, 0x4
 	mov [no_offset(pdpt_low) + 8], eax
 
 	mov eax, no_offset(pt_high)
 	or eax, 0x03
+	or eax, 0x4
 	mov ebx, no_offset(pdt_high)
 	; 2 PDTs, each with 512 entries
 	mov ecx, 2 * 512
@@ -101,6 +111,7 @@ populate_pdt_high_loop:
 
 	mov eax, 0
 	or eax, 0x03
+	or eax, 0x4
 	mov ebx, no_offset(pt_high)
 	; 512 PDEs = 512 PTs = 1024 * 512 PTEs
 	mov ecx, 1024 * 512
@@ -115,6 +126,7 @@ populate_pt_high_loop:
 
 	mov eax, no_offset(pt_low)
 	or eax, 0x03
+	or eax, 0x4
 	mov ebx, no_offset(pdt_low)
 	; 2 PDTs, each with 512 entries
 	mov ecx, 2 * 512
@@ -129,6 +141,8 @@ populate_pdt_low_loop:
 
 	mov eax, 0
 	or eax, 0x03
+	or eax, 0x4
+
 	mov ebx, no_offset(pt_low)
 	; 512 PDEs = 512 PTs = 1024 * 512 PTEs
 	mov ecx, 1024 * 512
@@ -141,10 +155,11 @@ populate_pt_low_loop:
 	dec ecx
 	jnz populate_pt_low_loop
 
-	; read EFER MSR, then enable long mode
+	; read EFER, then enable long mode and system calls
 	mov ecx, 0xC0000080
 	rdmsr
 	or eax, 1 << 8
+	or eax, 1
 	wrmsr
 
 	; enable paging
@@ -217,14 +232,11 @@ populate_pt_low_loop:
 	mov al, 0
 	out dx, al
 
-	xchg bx, bx
-
 	lgdt [no_offset(gdt_ptr)]
 	jmp 0x08:long_mode_start
 
 bits 64
 long_mode_start:
-	xchg bx, bx
 	mov ax, 0x10
 	mov ds, ax
 	mov es, ax
@@ -241,20 +253,17 @@ higher_half_text:
 	mov qword [gdt_ptr + 2], gdt_start
 	lgdt [gdt_ptr]
 
-	xchg bx, bx
-
 	; move to registers for use in kmain
 	; https://en.wikipedia.org/wiki/X86_calling_conventions#System_V_AMD64_ABI
 	mov rdi, gdt_tss
 	mov rsi, tss_start
-	mov rdx, tss_end
+	; mov rdx, tss_end
+	mov rdx, iopb_end
 	mov rcx, [mboot_struct_ptr]
 	mov r8, cr3
 	mov r9, pdpt_low
 	push pdt_low
 	push pt_low
-
-	xchg bx, bx
 
 	call kmain
 	jmp $
@@ -298,7 +307,7 @@ ist6:
 ist7:
 	resb 8
 privilege0_stack:
-	resb 0x1000
+	resb 0x4000
 	
 ; section .rodata
 
@@ -309,17 +318,19 @@ tss_start:
 	dq 0
 	dq 0
 	dq 0 ; reserved
-	dq no_offset(ist1)
-	dq no_offset(ist2)
-	dq no_offset(ist3)
-	dq no_offset(ist4)
-	dq no_offset(ist5)
-	dq no_offset(ist6)
-	dq no_offset(ist7)
+	dq 0
+	dq 0
+	dq 0
+	dq 0
+	dq 0
+	dq 0
+	dq 0
 	dq 0 ; reserved
 	dw 0 ; reserved
-	dw 0 ; no I/O for now
+	dw tss_end - tss_start ; no I/O for now
 tss_end:
+	resb 4096
+iopb_end:
 
 gdt_ptr:
 	dw no_offset(gdt_end) - no_offset(gdt_start) - 1
@@ -331,14 +342,14 @@ gdt_null:
 	dd 0x0
 
 gdt_kernel_code:
-	dw 0xFFFF ; limit
-	dw 0x0 ; base
-	db 0x0 ; base
-	db 0x9A ; access
-	db 0xAF ; flags and limit
-	db 0x0 ; base
+	dw 0x0
+	dw 0x0
+	db 0x0
+	db 0x98
+	db 0xA0
+	db 0x0
 gdt_kernel_data:
-	dw 0xFFFF
+	dw 0x0
 	dw 0x0
 	db 0x0
 	db 0x92
@@ -346,18 +357,18 @@ gdt_kernel_data:
 	db 0x0
 
 gdt_user_code:
-	dw 0xFFFF
+	dw 0x0
 	dw 0x0
 	db 0x0
-	db 0xFA
-	db 0xAF
+	db 0xF8
+	db 0xA0
 	db 0x0
 gdt_user_data:
-	dw 0xFFFF
+	dw 0x0
 	dw 0x0
 	db 0x0
 	db 0xF2
-	db 0xAF
+	db 0xA0
 	db 0x0
 
 ; filled by C code in kmain

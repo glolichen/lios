@@ -2,8 +2,8 @@ bochslog.txt
 qemulog.txt
 *.o
 *.iso
+*.bin
 *.img
-iso/
 serial.out
 libgcc.a
 bx_enh_dbg.ini

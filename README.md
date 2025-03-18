@@ -59,3 +59,7 @@ Sort of based on Linux, with other self-imposed janks as well.
 write bootable usb: `sudo dd if=iso/os.iso of=/dev/sda`
 create qemu drive: `qemu-img create -f raw disk.img [size]` and create GPT with `cfdisk disk.img`
 
+## Dependencies
+
+LiOS depends on GNU-EFI for parsing EFI information. Clone [https://git.code.sf.net/p/gnu-efi/code](https://git.code.sf.net/p/gnu-efi/code) to the base directory and to the folder `gnu-efi`.
+

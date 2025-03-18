@@ -28,12 +28,15 @@
 
 extern u64 kernel_end;
 
+void enter_user_mode(u64 stack_bottom, u64 stack_top);
+
 struct __attribute__((packed)) GDTEntryTSS {
-	u16 limit;
+	u16 limit_low;
 	u16 base_low;
 	u8 base_mid;
 	u8 access;
-	u8 flags_and_limit;
+	u8 limit_high : 4;
+	u8 flags : 4;
 	u8 base_high;
 	u32 base_highest;
 	u32 reserved;
@@ -46,23 +49,26 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	serial_info("kernel end: 0x%x", (u64) &kernel_end - KERNEL_OFFSET);
 
 	// FIXME: TSS setup is broken!! Fix this to go to user mode
-	// u64 limit = tss_end - tss_start;
-	// tss_entry->limit = limit & 0xFFFF;
-	// tss_entry->base_low = tss_start & 0xFFFF;
-	// tss_entry->base_mid = (tss_start >> 16) & 0xFF;
-	// tss_entry->access = 0x89;
-	// tss_entry->flags_and_limit = 0x40;
-	// tss_entry->flags_and_limit = ((limit >> 16) & 0xF) | (0 << 4);
-	// tss_entry->base_high = (tss_start >> 24) & 0xFF;
-	// tss_entry->base_highest = (tss_start >> 32) & 0xFFFFFFFF;
-	// tss_entry->reserved = 0;
-	// asm volatile("ltr %d0" :: "r"(0x18));
-	// serial_info("TSS loaded");
+	u64 limit = tss_end - tss_start;
+	tss_entry->limit_low = limit & 0xFFFF;
+	tss_entry->base_low = tss_start & 0xFFFF;
+	tss_entry->base_mid = (tss_start >> 16) & 0xFF;
+	tss_entry->access = 0x89;
+	tss_entry->limit_high = (limit >> 16) & 0xF;
+	tss_entry->flags = 8;
+	tss_entry->base_high = (tss_start >> 24) & 0xFF;
+	tss_entry->base_highest = (tss_start >> 32) & 0xFFFFFFFF;
+	tss_entry->reserved = 0;
+	asm volatile("ltr %d0" :: "r"(0x28));
+	serial_info("TSS loaded");
 
 	serial_info("multiboot pointer: 0x%x", mboot_addr);
-	
+
 	interrupt_init();
 
+	// enter_user_mode(0x2000, 0x1000);
+	// test_div0();
+	
 	/*  kernel.c - the C part of the kernel */
 	/*  Copyright (C) 1999, 2010  Free Software Foundation, Inc.
 	*
@@ -212,23 +218,36 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	serial_info("total mbi size 0x%x", tag - mboot_addr);
 	pmm_set_total(total_available_mem);
 
+	serial_info("still alive #1");
+
 	tag = (struct multiboot_tag *) (mboot_addr + 8);
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
+		serial_info("still alive #2");
 		if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
+			serial_info("still alive #3.1");
 			multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
+			serial_info("still alive #3.2");
 			while ((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
+				serial_info("still alive #3.3");
 				if (mmap->type != MBOOT_MEM_AVAILABLE)
 					goto bad_memory_region;
+				serial_info("still alive #3.4");
 				if (mmap->addr + mmap->len <= ((u64) &kernel_end - KERNEL_OFFSET))
 					goto bad_memory_region;
+				serial_info("still alive #3.5");
 				pmm_add_block(u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET)), mmap->addr + mmap->len);
+				serial_info("still alive #3.6");
 
 			bad_memory_region:
 				mmap = (multiboot_memory_map_t *) ((u64) mmap + ((struct multiboot_tag_mmap *) tag)->entry_size);
+				serial_info("still alive #3.7");
 			}
 
 		}
+		serial_info("still alive #4");
+		serial_info("still alive #5, note: 0x%x 0x%x", tag, tag->size);
 		tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
+		serial_info("still alive #6, note: 0x%x", tag);
 	}
 	// FSF COPIED CODE END
 
@@ -243,8 +262,7 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	asm volatile("mov rax, cr3; mov cr3, rax" ::: "memory");
 	serial_info("removed 0-2GiB identity map");
 
-	pml4 = (u64 *) ((u64) pml4 + KERNEL_OFFSET);
-	page_init(pml4);
+	page_set_pml4((u64) pml4, (u64) pml4 + KERNEL_OFFSET);
 
 	pmm_clear_blocks((u64) framebuffer_addr, (u64) framebuffer_addr + vga_pitch * pixel_height);
 
@@ -260,21 +278,33 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	if (!efi_table)
 		panic("no EFI system table found!");
 
-	struct MCFG *mcfg = find_acpi(efi_table);
-	volatile struct NVMeDevice *nvme = nvme_find(mcfg);
-	if (!nvme)
-		panic("no NVMe device!");
-	nvme_init(nvme);
-
-	struct Partition data_part = gpt_read();
-	fat32_init(data_part);
+	// struct MCFG *mcfg = find_acpi(efi_table);
+	// volatile struct NVMeDevice *nvme = nvme_find(mcfg);
+	// if (!nvme)
+	// 	panic("no NVMe device!");
+	// nvme_init(nvme);
+	//
+	// struct Partition data_part = gpt_read();
+	// fat32_init(data_part);
 
 	serial_info("setup ok");
 	vga_printf("setup ok\n");
 
+	u64 user_stack_phys = pmm_alloc_low();
+	u64 *user_stack = (u64 *) 0x1000;
+	page_map((u64) user_stack, user_stack_phys);
+	*user_stack = 100;
+
+	// enter_user_mode(0x1000 + 0x1000, 0x1000);
+	// test_div0();
+
 	// elf_load("HLWORLD", "OUT");
 
-	run_tests();
+	// test_run_tests();
+
+	// page_set_pml4((u64) 500, (u64) 500 + KERNEL_OFFSET);
+
+	// test_run_tests();
 
 	// hexdump(file_data.ptr, file_data.size_or_error.size, 1);
 	// vfree(file_data.ptr);
