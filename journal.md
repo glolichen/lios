@@ -12,6 +12,52 @@ The time has finally come to fix the memory allocator problem I procrastinated f
 
 Before, those lists reside in higher half physical memory (above the 2GiB mark) so they are not "identity mapped" (speaking loosely: 0xFFFF800... + physical address is mapped to the physical address). This is complicated, and out of feat the 2GiB lower region becomes filled up with random junk and causing an out of memory situation. Fortunately it looks like I was too paranoid and right now `kmalloc` is used to allocate a whopping 16 pages, or 64 kilobytes, out of 2097152 bytes of lower memory available. For this reason the free and allocated lists will not come directly from the `kmalloc` allocator.
 
+### Side Quest #2
+
+Bochs is different from QEMU, and it sets up the memory map in a different way that causes our program to break. Here is the memory map produced by QEMU:
+```
+INFO:      base_addr = 0x0, length = 0xA0000, type = Available, 0x32050
+INFO:      base_addr = 0x100000, length = 0x700000, type = Available, 0x32068
+INFO:      base_addr = 0x800000, length = 0x8000, type = NVS, 0x32080
+INFO:      base_addr = 0x808000, length = 0x3000, type = Available, 0x32098
+INFO:      base_addr = 0x80B000, length = 0x1000, type = NVS, 0x320B0
+INFO:      base_addr = 0x80C000, length = 0x5000, type = Available, 0x320C8
+INFO:      base_addr = 0x811000, length = 0xEF000, type = NVS, 0x320E0
+INFO:      base_addr = 0x900000, length = 0x7E303000, type = Available, 0x320F8
+INFO:      base_addr = 0x7EC03000, length = 0xC1000, type = Reserved, 0x32110
+INFO:      base_addr = 0x7ECC4000, length = 0x829000, type = Available, 0x32128
+INFO:      base_addr = 0x7F4ED000, length = 0x100000, type = Reserved, 0x32140
+INFO:      base_addr = 0x7F5ED000, length = 0x100000, type = ???, 0x32158
+INFO:      base_addr = 0x7F6ED000, length = 0x80000, type = Reserved, 0x32170
+INFO:      base_addr = 0x7F76D000, length = 0x12000, type = ACPI Reclaimable, 0x32188
+INFO:      base_addr = 0x7F77F000, length = 0x80000, type = NVS, 0x321A0
+INFO:      base_addr = 0x7F7FF000, length = 0x6C3000, type = Available, 0x321B8
+INFO:      base_addr = 0x7FEC2000, length = 0x4000, type = Reserved, 0x321D0
+INFO:      base_addr = 0x7FEC6000, length = 0x2000, type = NVS, 0x321E8
+INFO:      base_addr = 0x7FEC8000, length = 0x2C000, type = Available, 0x32200
+INFO:      base_addr = 0x7FEF4000, length = 0x84000, type = Reserved, 0x32218
+INFO:      base_addr = 0x7FF78000, length = 0x88000, type = NVS, 0x32230
+INFO:      base_addr = 0xE0000000, length = 0x10000000, type = Reserved, 0x32248
+INFO:      base_addr = 0x100000000, length = 0x180000000, type = Available, 0x32260
+INFO:      base_addr = 0xFD00000000, length = 0x300000000, type = Reserved, 0x32278
+```
+
+And here is the memory map produced by Bochs:
+```
+INFO:      base_addr = 0x0, length = 0x9F000, type = Available, 0x948C90
+INFO:      base_addr = 0x9F000, length = 0x1000, type = Reserved, 0x948CA8
+INFO:      base_addr = 0xE8000, length = 0x18000, type = Reserved, 0x948CC0
+INFO:      base_addr = 0x100000, length = 0x7FEF0000, type = Available, 0x948CD8
+INFO:      base_addr = 0x7FFF0000, length = 0x10000, type = ACPI Reclaimable, 0x948CF0
+INFO:      base_addr = 0xFFFC0000, length = 0x40000, type = Reserved, 0x948D08
+```
+
+The last number in every line represents the location of the variable containing the information about that memory section. In QEMU world, the memory map variable is placed around 0x32000, and 0x32000 is in the first "Available" zone. We do not use the first Available zone because it is too low.
+
+However, Bochs placed the memory map variable in the second Available zone, starting 0x100000. Unfortunately, this is the part of memory we will use, and the PMM initialization will manipulate parts of this piece of memory. This manipulation has broken the memory map structure, resulting in a page fault.
+
+The solution to this is: find the start and end of the structure provided by multiboot. For every Available section, check if there is an overlap between that zone and the multiboot structure area. If so, cut it out. This means calling `pmm_add_block` twice.
+
 ## File system
 
 I have decided to use FAT32. It is quite simple (compared to ext2 and others) while also being quite capable (unlike FAT12/16, except for the 4GB file size limit) and widely supported on existing operating systems.

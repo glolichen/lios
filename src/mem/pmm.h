@@ -7,8 +7,6 @@ void pmm_set_total(u64 size);
 void pmm_add_block(u64 start, u64 end);
 void pmm_init_final(void);
 
-void pmm_init(u64 start, u64 end);
-
 PhysicalAddress pmm_alloc_low(void);
 PhysicalAddress pmm_alloc_high(void);
 void pmm_free(PhysicalAddress mem);

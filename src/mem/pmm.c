@@ -22,7 +22,7 @@ void pmm_set_total(u64 size) {
 	// # nodes * (page size + sizeof(node)) = total mem
 	// # nodes = total mem / (page size + sizeof(node))
 	nodes_needed = floor_u64_div(total_size, PAGE_SIZE + sizeof(struct PhysFreeListNode)) - 1;
-	// serial_info("pmm: total available memory: 0x%x bytes (%u nodes)", total_size, nodes_needed);
+	serial_info("pmm: total available memory: 0x%x bytes (%u nodes)", total_size, nodes_needed);
 }
 
 void linked_list_add_node(u64 start) {
@@ -40,11 +40,10 @@ void linked_list_add_node(u64 start) {
 }
 
 void pmm_add_block(u64 start, u64 end) {
-	// serial_info("pmm: add block: start 0x%x end 0x%x", start, end);
+	serial_info("pmm: add block: start 0x%x end 0x%x, nodes needed %u", start, end, nodes_needed);
 	if (nodes_needed == 0) {
 		start = (start + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
 		for (u64 i = start; i < end && pmm_init_temp; i += PAGE_SIZE) {
-			// // serial_info("pmm: map node 0x%x -> phys 0x%x", pmm_init_temp, i);
 			pmm_init_temp->addr = i;
 			pmm_init_temp = pmm_init_temp->next;
 		}
@@ -60,12 +59,10 @@ void pmm_add_block(u64 start, u64 end) {
 	if (nodes_needed != 0)
 		return;
 
-	// serial_info("end: 0x%x", pmm_init_temp);
-
 	pmm_init_temp->next = 0;
 	pmm_init_temp = pmm_low;
 	if (cur < end) {
-		// serial_info("pmm: recursive call below");
+		serial_info("pmm: recursive call below");
 		pmm_add_block(cur, end);
 	}
 }

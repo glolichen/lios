@@ -1,4 +1,4 @@
-megs: 128
+megs: 2048
 romimage: file=/usr/local/share/bochs/BIOS-bochs-latest
 vgaromimage: file=/usr/local/share/bochs/VGABIOS-lgpl-latest.bin
 ata0-master: type=cdrom, path=iso/os.iso, status=inserted

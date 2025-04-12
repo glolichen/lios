@@ -28,7 +28,7 @@
 
 extern u64 kernel_end;
 
-void enter_user_mode(u64 stack_bottom, u64 stack_top);
+void enter_user_mode(u64 rsp, u64 rbp);
 
 struct __attribute__((packed)) GDTEntryTSS {
 	u16 limit_low;
@@ -96,6 +96,8 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	struct multiboot_tag *tag = (struct multiboot_tag *) (mboot_addr + 8);
 	u8 *framebuffer_addr = 0;
 	u32 pixel_width = 0, pixel_height = 0, vga_pitch = 0;
+
+	u64 multiboot_start = mboot_addr, multiboot_end = 0;
 
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
 		serial_info("tag %u, size 0x%x", tag->type, tag->size);
@@ -215,40 +217,69 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	}
 
 	tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
-	serial_info("total mbi size 0x%x", tag - mboot_addr);
-	pmm_set_total(total_available_mem);
 
-	serial_info("still alive #1");
+	multiboot_end = (u64) tag;
+
+	serial_info("total mbi size 0x%x", tag - mboot_addr);
+	serial_info("multiboot starts at 0x%x ends at 0x%x", multiboot_start, multiboot_end);
+
+	pmm_set_total(total_available_mem);
 
 	tag = (struct multiboot_tag *) (mboot_addr + 8);
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
-		serial_info("still alive #2");
 		if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
-			serial_info("still alive #3.1");
+			serial_info("mmap the second");
 			multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
-			serial_info("still alive #3.2");
 			while ((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
-				serial_info("still alive #3.3");
-				if (mmap->type != MBOOT_MEM_AVAILABLE)
-					goto bad_memory_region;
-				serial_info("still alive #3.4");
-				if (mmap->addr + mmap->len <= ((u64) &kernel_end - KERNEL_OFFSET))
-					goto bad_memory_region;
-				serial_info("still alive #3.5");
-				pmm_add_block(u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET)), mmap->addr + mmap->len);
-				serial_info("still alive #3.6");
+				serial_info("    something");
+				if (mmap->type == MBOOT_MEM_AVAILABLE && mmap->addr + mmap->len > ((u64) &kernel_end - KERNEL_OFFSET)) {
+					u64 zone_start = u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET));
+					zone_start = ceil_u64_div(zone_start, 0x1000) * 0x1000;
+					u64 zone_end = mmap->addr + mmap->len;
 
-			bad_memory_region:
+					u64 start1 = 0, end1 = 0;
+					u64 start2 = 0, end2 = 0;
+
+					// the multiboot structure might actually come in the middle of this zone for some reason
+					// split it into two zones: start to mmap start and mmap end to end
+					if ((multiboot_start >= zone_start && multiboot_start <= zone_end) || 
+							(multiboot_end >= zone_start && multiboot_end <= zone_end)) {
+
+						// start1 to end1 will be start to mmap start
+						// start2 to end2 will be mmap end to end
+
+						start1 = zone_start;
+						end1 = multiboot_start;
+						start2 = multiboot_end;
+						end2 = zone_end;
+
+						// it's possible that the mmap is not entirely in the middle of this zone
+						// if that happens, then one of the start[x] >= end[x], which doesn't make sense
+
+						if (start1 < end1)
+							pmm_add_block(start1, end1);
+						if (start2 < end2)
+							pmm_add_block(start2, end2);
+					}
+					else
+						pmm_add_block(zone_start, zone_end);
+				}
+				serial_info(
+					"    base_addr = 0x%x, length = 0x%x, type = %s, 0x%x",
+					mmap->addr,
+					mmap->len,
+					mmap->type <= 5 ? MULTIBOOT_ENTRY_TYPES[(unsigned) mmap->type] : "???",
+					mmap
+				);
 				mmap = (multiboot_memory_map_t *) ((u64) mmap + ((struct multiboot_tag_mmap *) tag)->entry_size);
-				serial_info("still alive #3.7");
 			}
-
 		}
-		serial_info("still alive #4");
-		serial_info("still alive #5, note: 0x%x 0x%x", tag, tag->size);
+
+		// move on to next multiboot tag
+		// add seven then clear last 3 bits for 8 byte alignment
 		tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
-		serial_info("still alive #6, note: 0x%x", tag);
 	}
+
 	// FSF COPIED CODE END
 
 	pmm_init_final();
@@ -291,11 +322,11 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	vga_printf("setup ok\n");
 
 	u64 user_stack_phys = pmm_alloc_low();
-	u64 *user_stack = (u64 *) 0x1000;
+	u64 *user_stack = (u64 *) 0x800000;
 	page_map((u64) user_stack, user_stack_phys);
 	*user_stack = 100;
 
-	// enter_user_mode(0x1000 + 0x1000, 0x1000);
+	// enter_user_mode((u64) user_stack + 0x1000 - 8, (u64) user_stack + 0x1000 - 8);
 	// test_div0();
 
 	// elf_load("HLWORLD", "OUT");

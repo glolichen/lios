@@ -156,10 +156,10 @@ void page_map(u64 virt, PhysicalAddress phys/*, bool writable, bool execute*/) {
 		pml4e_set_addr(&pml4_addr->table[pml4e], allocated_pdpt_addr - KERNEL_OFFSET);
 		pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_PRESENT);
 		pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_WRITABLE);
-		// if (virt >= 0xFFFF800000000000)
-		// 	pml4e_unset_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
-		// else
-		// 	pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+		if (virt >= 0xFFFF800000000000)
+			pml4e_unset_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+		else
+			pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
 		pdpt_addr = (PDPT *) allocated_pdpt_addr;
 	}
 	else
@@ -171,10 +171,10 @@ void page_map(u64 virt, PhysicalAddress phys/*, bool writable, bool execute*/) {
 		pdpe_set_addr(&pdpt_addr->table[pdpe], allocated_pdt_addr - KERNEL_OFFSET);
 		pdpe_set_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_PRESENT);
 		pdpe_set_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_WRITABLE);
-		// if (virt >= 0xFFFF800000000000)
-		// 	pdpe_unset_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
-		// else
-		// 	pdpe_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+		if (virt >= 0xFFFF800000000000)
+			pdpe_unset_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+		else
+			pdpe_set_flag(&pdpt_addr->table[pdpe], PML4E_PDPE_PDE_USER);
 		pdt_addr = (PDT *) allocated_pdt_addr;
 	}
 	else
@@ -186,26 +186,23 @@ void page_map(u64 virt, PhysicalAddress phys/*, bool writable, bool execute*/) {
 		pde_set_addr(&pdt_addr->table[pde], allocated_pt_addr - KERNEL_OFFSET);
 		pde_set_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_PRESENT);
 		pde_set_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_WRITABLE);
-		// if (virt >= 0xFFFF800000000000)
-		// 	pde_unset_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
-		// else
-		// 	pde_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+		if (virt >= 0xFFFF800000000000)
+			pde_unset_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
+		else
+			pde_set_flag(&pdt_addr->table[pde], PML4E_PDPE_PDE_USER);
 		pt_addr = (PT *) allocated_pt_addr;
 	}
 	else
 		pt_addr = (PT *) ((u64) pt_addr + KERNEL_OFFSET);
 
-	pml4e_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
-	pdpe_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
-	pde_set_flag(&pml4_addr->table[pml4e], PML4E_PDPE_PDE_USER);
-
 	pte_set_addr(&pt_addr->table[pte], phys);
 	pte_set_flag(&pt_addr->table[pte], PTE_PRESENT);
 	pte_set_flag(&pt_addr->table[pte], PTE_WRITABLE);
-	// if (virt >= 0xFFFF800000000000)
-	// 	pte_unset_flag(&pml4_addr->table[pml4e], PTE_USER);
-	// else
-	// 	pte_set_flag(&pml4_addr->table[pml4e], PTE_USER);
+
+	if (virt >= 0xFFFF800000000000)
+		pte_unset_flag(&pt_addr->table[pte], PTE_USER);
+	else
+		pte_set_flag(&pt_addr->table[pte], PTE_USER);
 
 	// serial_info("page: map 0x%x virt to 0x%x phys", virt, phys);
 }
