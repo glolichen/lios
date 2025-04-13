@@ -24,7 +24,7 @@ void vga_init(u8 *addr, u32 width, u32 height, u32 pitch) {
 	u32 pages_needed = ceil_u32_div(vga_pitch * pixel_height, PAGE_SIZE);
 	u64 virt = 0xFFFF800000000000;
 	for (u32 i = 0; i < pages_needed; i++)
-		page_map(virt + i * PAGE_SIZE, (PhysicalAddress) addr + i * PAGE_SIZE);
+		page_map(virt + i * PAGE_SIZE, (PhysicalAddress) addr + i * PAGE_SIZE, true);
 
 	serial_info("vga: initialize framebuffer at 0x%x virt -> 0x%x phys", virt, page_virt_to_phys_addr(virt));
 

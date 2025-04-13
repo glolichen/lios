@@ -344,14 +344,14 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 
 	// fat32_new_file("file5", "txt");
 
-	// u64 new_kernel_stack = (u64) kmalloc_page();
-	// tss->rsp0 = new_kernel_stack;
-	//
-	// u64 user_stack_phys = pmm_alloc_low();
-	// u64 *user_stack = (u64 *) 0x800000;
-	// page_map((u64) user_stack, user_stack_phys);
-	// *user_stack = 100;
+	u64 new_kernel_stack = (u64) kmalloc_page();
+	tss->rsp0 = new_kernel_stack;
 
-	// enter_user_mode((u64) user_stack + 0x1000 - 8);
+	u64 user_stack_phys = pmm_alloc_low();
+	u64 *user_stack = (u64 *) 0x800000;
+	page_map((u64) user_stack, user_stack_phys, true);
+	*user_stack = 100;
+
+	enter_user_mode((u64) user_stack + 0x1000 - 8);
 }
 

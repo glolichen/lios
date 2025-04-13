@@ -103,7 +103,7 @@ bool elf_load(const char *name, const char *ext) {
 
 		void *segment = (void *) virt_addr;
 		u64 phys = pmm_alloc_high();
-		page_map((u64) segment, phys);
+		page_map((u64) segment, phys, true);
 
 		memcpy(segment, (void *) ((u64) buffer + file_offset), file_size);
 

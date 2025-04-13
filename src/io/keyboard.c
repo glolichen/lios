@@ -3,6 +3,7 @@
 #include "output.h"
 #include "../util/const.h"
 #include "../int/interrupt.h"
+#include "../testing.h"
 
 void keyboard_routine(const struct InterruptData *data) {
 	u8 scan = inb(0x60);
@@ -15,4 +16,7 @@ void keyboard_routine(const struct InterruptData *data) {
 	else {
 		vga_printf("0x%x <\?\?\?>\n", scan);
 	}
+
+	if (scan == 11)
+		test_div0();
 }

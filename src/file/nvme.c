@@ -66,7 +66,7 @@ struct NVMeDevice *nvme_find(const struct MCFG *mcfg) {
 
 		// 256 << 20 = maximum address that could be accessed in this process
 		for (u64 i = 0; i < (256 << 20) / PAGE_SIZE; i++)
-			page_map(VIRT_ADDR + i * PAGE_SIZE, entry.addr + i * PAGE_SIZE);
+			page_map(VIRT_ADDR + i * PAGE_SIZE, entry.addr + i * PAGE_SIZE, true);
 
 		for (u32 bus = entry.start_pci; bus <= entry.end_pci; bus++) {
 			for (u32 device = 0; device < 32; device++) {
@@ -97,8 +97,8 @@ found_nvme_device:
 			page_unmap(VIRT_ADDR + i * PAGE_SIZE);
 
 		u64 nvme_base = VIRT_ADDR;
-		page_map((u64) nvme_base, nvme_base_addr);
-		page_map((u64) nvme_base + 0x1000, nvme_base_addr + 0x1000);
+		page_map((u64) nvme_base, nvme_base_addr, true);
+		page_map((u64) nvme_base + 0x1000, nvme_base_addr + 0x1000, true);
 
 		return (struct NVMeDevice *) nvme_base;
 	}

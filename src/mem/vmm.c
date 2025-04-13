@@ -154,7 +154,7 @@ void *vmm_alloc(u64 pages) {
 				u64 virt = start + i * PAGE_SIZE;
 				PhysicalAddress page_frame = pmm_alloc_high();
 				page_unmap(virt);
-				page_map(virt, page_frame);
+				page_map(virt, page_frame, true);
 			}
 
 			alloc_list_add_node(start, pages);
@@ -182,7 +182,7 @@ void vmm_free(void *mem) {
 		serial_info("vmm: detected page frame: 0x%x", page_frame);
 		pmm_free(page_frame);
 		page_unmap(virt);
-		page_map(virt, virt - KERNEL_OFFSET);
+		page_map(virt, virt - KERNEL_OFFSET, true);
 	}
 
 	// add virtual addresses back to linked list for future use

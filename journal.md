@@ -6,13 +6,23 @@ Some other parts of the file system can wait for now, such as some optimizations
 
 Since it's well-documented, decently simple and used on many Unix-like operating systems (Linux, FreeBSD, etc), I will use the [Executable and Linkable Format (ELF)](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format). I won't implement shared objects since that is too complicated and programs in this basic operating system wouldn't be able to take advantage of them anyway.
 
-### Side Quest
+## Switch to User Mode / Ring 3
 
-The time has finally come to fix the memory allocator problem I procrastinated for almost half a year: the fact that free and allocated linked lists in the virtual address allocator can each only use 1 page (4096 bytes), limiting the max number of notes to 169. This is quite bad for obvious reasons as we will probably be making more than 169 allocations and there is a real chance for the free list to become extremely fragmented.
+The first step of being able to run user programs is to actually get into user mode, or Ring 3. This is where the CPU is operating usually, so that we do not have too many permissions for security reasons. How this usually works is that when the OS wants to do something privileged, like allocating memory or writing files, it will send a system call to the kernel, the CPU will switch back to kernel mode or Ring 0, do the thing that is requested if it is allowed, and then switch back to user mode and the user program.
 
-Before, those lists reside in higher half physical memory (above the 2GiB mark) so they are not "identity mapped" (speaking loosely: 0xFFFF800... + physical address is mapped to the physical address). This is complicated, and out of fear the 2GiB lower region becomes filled up with random junk and causing an out of memory situation. Fortunately it looks like I was too paranoid and right now `kmalloc` is used to allocate a whopping 16 pages, or 64 kilobytes, out of 2 gigabytes of lower memory available. For this reason the free and allocated lists will not come directly from the `kmalloc` allocator.
+Since x86 sucks, there is no direct way to switch between the protection rings. One of the ways you can do this is pretend you are in an interrupt service routine (which are called after an interrupt, such as a system call, is called) (in the past, system calls were simply interrupts, and on 32-bit Linux this was interrupt vector 0x80, but it is now faster and recommended to use the dedicated `sysenter` and `syscall` isntructions). After an interrupt from Ring 0 to Ring 3, the CPU will switch "back" to Ring 3. We can simply trick the CPU into thinking it is in this state.
 
-### Side Quest #2
+After fighting with the `iret` instruction and the Task State Segment, we can now switch to user mode, except there is another problem...
+
+In order to make some pages accessible in Ring 3, we mark the page table entry, page directory entry, page directory pointer table entry and the PML4 entry with the user flag. It sounds straightforward enough that all lower half virtual memory are given to user processes, and should have the flag, while upper half virtual memory do not, as they have been. For some reason, this scheme causes some weird problems with the NVMe where the NVMe device claims to not support the command set.
+
+This comes down to a very sneaky issue. In the past, we stored the PTE/PDE/PDPE/PML4E flags as an enum. I was not very careful and those enums were actually stored as 32 bit integers. But each table entry is a 64 bit integer, so when we unset the flag (take the complement, then AND to remove the bit we want), it was removing everything above the 32 bit mark. Now we are keeping the flags as macros so they are now treated as 64 bit immediates.
+
+Click 0 on the keyboard while in user mode to induce a division by zero. As you may see, the interrupt/exception handling works!
+
+## Fixing LiOS on Bochs
+
+This has been bothering me for a while now, but we have basically never used Bochs even though its debugger tool is incredibly helpful for many things. This is because the program page faults itself immediately when running on Bochs, but not on QEMU. Very weird.
 
 Bochs is different from QEMU, and it sets up the memory map in a different way that causes our program to break. Here is the memory map produced by QEMU:
 ```
@@ -57,6 +67,12 @@ The last number in every line represents the location of the variable containing
 However, Bochs placed the memory map variable in the second Available zone, starting 0x100000. Unfortunately, this is the part of memory we will use, and the PMM initialization will manipulate parts of this piece of memory. This manipulation has broken the memory map structure, resulting in a page fault.
 
 The solution to this is: find the start and end of the structure provided by multiboot. For every Available section, check if there is an overlap between that zone and the multiboot structure area. If so, cut it out. This means calling `pmm_add_block` twice.
+
+## Fixing Memory Allocator
+
+The time has finally come to fix the memory allocator problem I procrastinated for almost half a year: the fact that free and allocated linked lists in the virtual address allocator can each only use 1 page (4096 bytes), limiting the max number of notes to 169. This is quite bad for obvious reasons as we will probably be making more than 169 allocations and there is a real chance for the free list to become extremely fragmented.
+
+Before, those lists reside in higher half physical memory (above the 2GiB mark) so they are not "identity mapped" (speaking loosely: 0xFFFF800... + physical address is mapped to the physical address). This is complicated, and out of fear the 2GiB lower region becomes filled up with random junk and causing an out of memory situation. Fortunately it looks like I was too paranoid and right now `kmalloc` is used to allocate a whopping 16 pages, or 64 kilobytes, out of 2 gigabytes of lower memory available. For this reason the free and allocated lists will not come directly from the `kmalloc` allocator.
 
 ## File system
 

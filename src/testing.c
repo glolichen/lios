@@ -192,7 +192,7 @@ void test_run_tests(void) {
 	// u64 page_frame = pmm_alloc_kernel();
 	// asm("xchg bx, bx");
 	//
-	// page_map(page_frame, page_frame);
+	// page_map(page_frame, page_frame, true);
 	// asm("xchg bx, bx");
 	// vga_printf("0x%x 0x%x\n", page_frame, *((u64 *) page_frame));
 	// *((u64 *) page_frame) = 0xDEADBEEF;
