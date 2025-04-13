@@ -132,6 +132,8 @@ bool completion_check_success(u64 dword3) {
 }
 
 void nvme_init(volatile struct NVMeDevice *nvme) {
+	serial_info("nvme device 0x%x", nvme);
+
 	// disable controller and wait
 	nvme->CC = 0;
 
@@ -146,6 +148,7 @@ void nvme_init(volatile struct NVMeDevice *nvme) {
 	// if (!(0 >= min_page_size && 0 <= max_page_size))
 	// 	panic("nvme: page size not supported!");
 
+	// FIXME: why does this cause error?
 	u8 command_sets = (nvme->CAP >> 37) & 0xFF;
 	if (!(command_sets & 1))
 		panic("nvme: controller does not support nvm command set!");
@@ -192,6 +195,7 @@ void nvme_init(volatile struct NVMeDevice *nvme) {
 	// status code type (SCT) 0 usually means success, spec P138-140, 419-420
 	if (!completion_check_success(admin_complete[admin_completion_head].dword3))
 		panic("nvme: failure when creating IO completion queue!");
+
 	serial_info(
 		"nvme: created IO completion queue at 0x%x",
 		 page_virt_to_phys_addr((u64) io_complete)

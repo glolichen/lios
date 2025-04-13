@@ -8,9 +8,9 @@ Since it's well-documented, decently simple and used on many Unix-like operating
 
 ### Side Quest
 
-The time has finally come to fix the memory allocator problem I procrastinated for almost half a year: the fact that free and allocated linked lists in the virtual address allocator can each only use 1 page (4096 bytes), limiting the max number of notes to 169. This is quite bad for obvious reasons as we will probably be making more than 169 allocations and there is a real change for the free list to become extremely fragmented.
+The time has finally come to fix the memory allocator problem I procrastinated for almost half a year: the fact that free and allocated linked lists in the virtual address allocator can each only use 1 page (4096 bytes), limiting the max number of notes to 169. This is quite bad for obvious reasons as we will probably be making more than 169 allocations and there is a real chance for the free list to become extremely fragmented.
 
-Before, those lists reside in higher half physical memory (above the 2GiB mark) so they are not "identity mapped" (speaking loosely: 0xFFFF800... + physical address is mapped to the physical address). This is complicated, and out of feat the 2GiB lower region becomes filled up with random junk and causing an out of memory situation. Fortunately it looks like I was too paranoid and right now `kmalloc` is used to allocate a whopping 16 pages, or 64 kilobytes, out of 2097152 bytes of lower memory available. For this reason the free and allocated lists will not come directly from the `kmalloc` allocator.
+Before, those lists reside in higher half physical memory (above the 2GiB mark) so they are not "identity mapped" (speaking loosely: 0xFFFF800... + physical address is mapped to the physical address). This is complicated, and out of fear the 2GiB lower region becomes filled up with random junk and causing an out of memory situation. Fortunately it looks like I was too paranoid and right now `kmalloc` is used to allocate a whopping 16 pages, or 64 kilobytes, out of 2 gigabytes of lower memory available. For this reason the free and allocated lists will not come directly from the `kmalloc` allocator.
 
 ### Side Quest #2
 
@@ -199,3 +199,6 @@ I wrote most of this stuff during exam week last year and over the summer. This 
 - *VGA text mode* frame buffer, which cannot be used on UEFI hardware, which has to be supported to boot on modern hardware
 - Keyboard interrupts, obviously
 
+## Count LOC
+
+`find src/ -name "*.c" -o -name "*.h" -o -name "*.s" | xargs wc -l`

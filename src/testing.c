@@ -15,7 +15,7 @@ void test_div0(void) {
 }
 
 void fat32_test(void) {
-	struct FAT32_OpenResult file_data = fat32_open("HLWORLD", "OUT");
+	struct FAT32_OpenResult file_data = fat32_open("POOPDOG", "TXT");
 	if (file_data.cluster == 0)
 		vga_printf("file read error: %s\n", FAT32_OPEN_ERRORS[file_data.size_or_error.error]);
 	else {
@@ -26,11 +26,11 @@ void fat32_test(void) {
 		vfree(buffer);
 	}
 
-	struct FAT32_NewFileResult info = fat32_new_file("peddie", "die");
-	if (info.fd != 0)
-		vga_printf("new file creation successful at %u\n", info.fd);
-	else
-		vga_printf("new file creation error: %s\n", FAT32_NEW_FILE_ERRORS[info.error]);
+	// struct FAT32_NewFileResult info = fat32_new_file("peddie", "die");
+	// if (info.fd != 0)
+	// 	vga_printf("new file creation successful at %u\n", info.fd);
+	// else
+	// 	vga_printf("new file creation error: %s\n", FAT32_NEW_FILE_ERRORS[info.error]);
 }
 
 void test_run_tests(void) {

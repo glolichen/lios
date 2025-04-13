@@ -26,10 +26,6 @@
 
 #include "proc/elf.h"
 
-extern u64 kernel_end;
-
-void enter_user_mode(u64 rsp, u64 rbp);
-
 struct __attribute__((packed)) GDTEntryTSS {
 	u16 limit_low;
 	u16 base_low;
@@ -42,13 +38,36 @@ struct __attribute__((packed)) GDTEntryTSS {
 	u32 reserved;
 };
 
-void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_addr,
+struct __attribute__((packed)) TaskStateSegment {
+	u32 reserved1;
+	u64 rsp0;
+	u64 rsp1;
+	u64 rsp2;
+	u64 reserved2;
+	u64 ist1;
+	u64 ist2;
+	u64 ist3;
+	u64 ist4;
+	u64 ist5;
+	u64 ist6;
+	u64 ist7;
+	u64 reserved3;
+	u16 reserved4;
+	u16 iopb;
+};
+
+extern u64 kernel_end;
+
+// the top of the stack we switch to after entering ring 3
+void enter_user_mode(u64 stack_base);
+
+void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_end, u64 mboot_addr,
 			u64 pml4[512], u64 pdpt_low[512], u64 pdt_low[512], u64 pt_low[512]) {
 
 	serial_init();
 	serial_info("kernel end: 0x%x", (u64) &kernel_end - KERNEL_OFFSET);
 
-	// FIXME: TSS setup is broken!! Fix this to go to user mode
+	u64 tss_start = (u64) tss;
 	u64 limit = tss_end - tss_start;
 	tss_entry->limit_low = limit & 0xFFFF;
 	tss_entry->base_low = tss_start & 0xFFFF;
@@ -216,22 +235,16 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 		tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 	}
 
-	tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
-
-	multiboot_end = (u64) tag;
-
 	serial_info("total mbi size 0x%x", tag - mboot_addr);
-	serial_info("multiboot starts at 0x%x ends at 0x%x", multiboot_start, multiboot_end);
+	multiboot_end = (u64) ((multiboot_uint8_t *) tag + ((tag->size + 7) & ~7));
 
 	pmm_set_total(total_available_mem);
 
 	tag = (struct multiboot_tag *) (mboot_addr + 8);
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
 		if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
-			serial_info("mmap the second");
 			multiboot_memory_map_t *mmap = ((struct multiboot_tag_mmap *) tag)->entries;
 			while ((multiboot_uint8_t *) mmap < (multiboot_uint8_t *) tag + tag->size) {
-				serial_info("    something");
 				if (mmap->type == MBOOT_MEM_AVAILABLE && mmap->addr + mmap->len > ((u64) &kernel_end - KERNEL_OFFSET)) {
 					u64 zone_start = u64_max(mmap->addr, ((u64) &kernel_end - KERNEL_OFFSET));
 					zone_start = ceil_u64_div(zone_start, 0x1000) * 0x1000;
@@ -264,13 +277,6 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 					else
 						pmm_add_block(zone_start, zone_end);
 				}
-				serial_info(
-					"    base_addr = 0x%x, length = 0x%x, type = %s, 0x%x",
-					mmap->addr,
-					mmap->len,
-					mmap->type <= 5 ? MULTIBOOT_ENTRY_TYPES[(unsigned) mmap->type] : "???",
-					mmap
-				);
 				mmap = (multiboot_memory_map_t *) ((u64) mmap + ((struct multiboot_tag_mmap *) tag)->entry_size);
 			}
 		}
@@ -306,27 +312,25 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 	vga_init(framebuffer_addr, pixel_width, pixel_height, vga_pitch);
 	vga_clear();
 
+	// WARN: renable for QEMU
 	if (!efi_table)
 		panic("no EFI system table found!");
 
-	// struct MCFG *mcfg = find_acpi(efi_table);
-	// volatile struct NVMeDevice *nvme = nvme_find(mcfg);
-	// if (!nvme)
-	// 	panic("no NVMe device!");
-	// nvme_init(nvme);
-	//
-	// struct Partition data_part = gpt_read();
-	// fat32_init(data_part);
+	struct MCFG *mcfg = find_acpi(efi_table);
+	volatile struct NVMeDevice *nvme = nvme_find(mcfg);
+	if (!nvme)
+		panic("no NVMe device!");
+
+	nvme_init(nvme);
+
+	struct Partition data_part = gpt_read();
+	fat32_init(data_part);
 
 	serial_info("setup ok");
 	vga_printf("setup ok\n");
 
-	u64 user_stack_phys = pmm_alloc_low();
-	u64 *user_stack = (u64 *) 0x800000;
-	page_map((u64) user_stack, user_stack_phys);
-	*user_stack = 100;
+	// test_run_tests();
 
-	// enter_user_mode((u64) user_stack + 0x1000 - 8, (u64) user_stack + 0x1000 - 8);
 	// test_div0();
 
 	// elf_load("HLWORLD", "OUT");
@@ -335,11 +339,19 @@ void kmain(struct GDTEntryTSS *tss_entry, u64 tss_start, u64 tss_end, u64 mboot_
 
 	// page_set_pml4((u64) 500, (u64) 500 + KERNEL_OFFSET);
 
-	// test_run_tests();
-
 	// hexdump(file_data.ptr, file_data.size_or_error.size, 1);
 	// vfree(file_data.ptr);
 
 	// fat32_new_file("file5", "txt");
+
+	// u64 new_kernel_stack = (u64) kmalloc_page();
+	// tss->rsp0 = new_kernel_stack;
+	//
+	// u64 user_stack_phys = pmm_alloc_low();
+	// u64 *user_stack = (u64 *) 0x800000;
+	// page_map((u64) user_stack, user_stack_phys);
+	// *user_stack = 100;
+
+	// enter_user_mode((u64) user_stack + 0x1000 - 8);
 }
 

@@ -314,7 +314,7 @@ privilege0_stack:
 section .data
 tss_start:
 	dd 0 ; reserved
-	dq no_offset(stack_bottom)
+	dq 0
 	dq 0
 	dq 0
 	dq 0 ; reserved

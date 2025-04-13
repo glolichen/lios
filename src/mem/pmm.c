@@ -105,10 +105,10 @@ PhysicalAddress pmm_alloc_high(void) {
 	// if there is no user memory left then allocate something <2GiB
 	if (pmm_high == 0) {
 		serial_info("pmm: low (<2GiB) mem allocated as high");
-		// u64 low_area = pmm_alloc_low();
-		// page_unmap(low_area);
-		// return low_area;
-		panic("pmm: not yet implemented!");
+		u64 low_area = pmm_alloc_low();
+		page_unmap(low_area);
+		return low_area;
+		// panic("pmm: not yet implemented!");
 		// return pmm_alloc_kernel();
 	}
 
