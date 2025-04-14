@@ -59,7 +59,7 @@ struct __attribute__((packed)) TaskStateSegment {
 extern u64 kernel_end;
 
 // the top of the stack we switch to after entering ring 3
-void enter_user_mode(u64 stack_base);
+// void enter_user_mode(u64 stack_base);
 
 void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_end, u64 mboot_addr,
 			u64 pml4[512], u64 pdpt_low[512], u64 pdt_low[512], u64 pt_low[512]) {
@@ -311,6 +311,7 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 
 	vga_init(framebuffer_addr, pixel_width, pixel_height, vga_pitch);
 	vga_clear();
+	vga_printf("Booting...");
 
 	// WARN: renable for QEMU
 	if (!efi_table)
@@ -326,14 +327,15 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	struct Partition data_part = gpt_read();
 	fat32_init(data_part);
 
+	interrupt_sti();
+
+	vga_clear();
 	serial_info("setup ok");
 	vga_printf("setup ok\n");
 
 	// test_run_tests();
 
 	// test_div0();
-
-	// elf_load("HLWORLD", "OUT");
 
 	// test_run_tests();
 
@@ -347,11 +349,17 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	u64 new_kernel_stack = (u64) kmalloc_page();
 	tss->rsp0 = new_kernel_stack;
 
-	u64 user_stack_phys = pmm_alloc_low();
-	u64 *user_stack = (u64 *) 0x800000;
-	page_map((u64) user_stack, user_stack_phys, true);
-	*user_stack = 100;
+	// if (elf_load("HLWORLD", "OUT")) {
 
-	enter_user_mode((u64) user_stack + 0x1000 - 8);
+	if (elf_load("CRASH", "OUT")) {
+		vga_printf("ELF load ok\n");
+		serial_info("ELF load ok");
+	}
+
+	// u64 user_stack_phys = pmm_alloc_low();
+	// u64 *user_stack = (u64 *) 0x800000;
+	// page_map((u64) user_stack, user_stack_phys, false);
+
+	// enter_user_mode((u64) user_stack + 0x1000);
 }
 

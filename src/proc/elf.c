@@ -9,8 +9,10 @@
 #include "../util/hexdump.h"
 #include "../util/misc.h"
 
+void enter_user_mode(u64 stack_base, u64 entry_point);
+
 bool elf_load(const char *name, const char *ext) {
-	struct FAT32_OpenResult file_data = fat32_open("HLWORLD", "OUT");
+	struct FAT32_OpenResult file_data = fat32_open(name, ext);
 	if (file_data.cluster == 0)
 		return false;
 
@@ -74,7 +76,7 @@ bool elf_load(const char *name, const char *ext) {
 
 	u16 shstrndx = header->e_shstrndx;
 
-	serial_info("elf: program entry: 0x%x", entry_point);
+	serial_info("elf: program entry point: 0x%x", entry_point);
 	serial_info("elf: program header:");
 	serial_info("    start: 0x%x", ph_start);
 	serial_info("    entry size: %u", ph_entry_size);
@@ -103,7 +105,7 @@ bool elf_load(const char *name, const char *ext) {
 
 		void *segment = (void *) virt_addr;
 		u64 phys = pmm_alloc_high();
-		page_map((u64) segment, phys, true);
+		page_map((u64) segment, phys, false);
 
 		memcpy(segment, (void *) ((u64) buffer + file_offset), file_size);
 
@@ -118,9 +120,15 @@ bool elf_load(const char *name, const char *ext) {
 		hexdump((void *) virt_addr, memory_size, true);
 	}
 
-	// asm volatile("jmp %0" :: "r"(entry_point));
+	// vfree(buffer);
 
-	vfree(buffer);
+	u64 user_stack_phys = pmm_alloc_high();
+	u64 *user_stack = (u64 *) 0x800000;
+	page_map((u64) user_stack, user_stack_phys, false);
+
+	enter_user_mode((u64) user_stack + 0x1000, entry_point);
+	// enter_user_mode((u64) user_stack + 0x1000, 0);
 
 	return true;
 }
+

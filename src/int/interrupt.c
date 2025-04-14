@@ -128,7 +128,10 @@ void interrupt_init() {
 	idt_ptr.size = sizeof(idt) - 1;
 	idt_ptr.offset = (u64) &idt;
 
-	asm volatile("lidt %0; sti" :: "m"(idt_ptr));
-
-	serial_info("interrupts: initialized");
+	serial_info("interrupts: initialized but not enabled");
 }
+
+void interrupt_sti(void) {
+	asm volatile("lidt %0; sti" :: "m"(idt_ptr));
+}
+

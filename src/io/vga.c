@@ -98,6 +98,7 @@ void vga_putchar(char c) {
 }
 
 void vga_clear(void) {
+	cur_row = 0, cur_col = 0;
 	for (u32 i = 0; i < pixel_width ; i++) {
 		for (u32 j = 0; j < pixel_height; j++)
 			vga_putpixel(i, j, 0, 0, 0);
@@ -107,3 +108,4 @@ void vga_clear(void) {
 bool vga_is_initialized(void) {
 	return vga_chars != 0;
 }
+

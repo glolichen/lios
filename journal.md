@@ -6,6 +6,8 @@ Some other parts of the file system can wait for now, such as some optimizations
 
 Since it's well-documented, decently simple and used on many Unix-like operating systems (Linux, FreeBSD, etc), I will use the [Executable and Linkable Format (ELF)](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format). I won't implement shared objects since that is too complicated and programs in this basic operating system wouldn't be able to take advantage of them anyway.
 
+To compile assembly programs with NASM: `nasm -felf64 [FILE].s` to assembly then `ld [FILE].o -o [FILE]` to link, optionally `./[FILE]` to execute.
+
 ## Switch to User Mode / Ring 3
 
 The first step of being able to run user programs is to actually get into user mode, or Ring 3. This is where the CPU is operating usually, so that we do not have too many permissions for security reasons. How this usually works is that when the OS wants to do something privileged, like allocating memory or writing files, it will send a system call to the kernel, the CPU will switch back to kernel mode or Ring 0, do the thing that is requested if it is allowed, and then switch back to user mode and the user program.
@@ -97,8 +99,8 @@ Currently, we can do the following:
 Ideally I would like the disk image to have partitions which are formatted in our chosen file system, and for us to be able to mount that file on our local computer for reading and writing.
 
 1. Create the disk `qemu-img create -f raw disk.img [size]`
-2. Add a GUID Partition Table (GPT) `parted disk.img mklabel gpt`
-3. Create a FAT32 partition `parted disk.img mkpart primary fat32 0% 100%`
+2. Add a GUID Partition Table (GPT) `sudo parted disk.img mklabel gpt`
+3. Create a FAT32 partition `sudo parted disk.img mkpart primary fat32 0% 100%`
 4. Set up a loop device `sudo losetup -Pf --show disk.img`
 5. Format the partition (`parted` only creates) `sudo mkfs.fat -F 32 /dev/loopNp1`
 

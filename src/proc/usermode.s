@@ -4,6 +4,8 @@ bits 64
 ; first parameter = RDI = stack base
 ; this will become RSP/current stack and RBP/stack top
 ; this means we start with empty stack and grow down
+
+; second parameter = RSI = entry point
 enter_user_mode:
 	xchg bx, bx
 
@@ -30,7 +32,11 @@ enter_user_mode:
 	push 24 | 3
 
 	; push return address/rip
-	push user_mode_start
+	cmp rsi, 0
+	jnz if_end
+	mov rsi, user_mode_start
+if_end:
+	push rsi
 
 	; set stack base address to the first parameter
 	mov rbp, rdi
@@ -38,12 +44,15 @@ enter_user_mode:
 	iretq
 
 user_mode_start:
+	push 0xDEAD
+	pop rax
+
 	nop
 	nop
 	nop
 	nop
 	nop
-	; cli
+	; sti
 	; mov rax, 0
 	; mov rbx, 0
 	; div rbx

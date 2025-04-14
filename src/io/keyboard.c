@@ -20,3 +20,4 @@ void keyboard_routine(const struct InterruptData *data) {
 	if (scan == 11)
 		test_div0();
 }
+
