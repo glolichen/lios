@@ -77,6 +77,5 @@ extern void irq15(void);
 void handle_exception(const struct InterruptData *data);
 void handle_interrupt(const struct InterruptData *data);
 void interrupt_init(void);
-void interrupt_sti(void);
 
 #endif

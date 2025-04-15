@@ -327,7 +327,7 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	struct Partition data_part = gpt_read();
 	fat32_init(data_part);
 
-	interrupt_sti();
+	asm volatile("sti");
 
 	vga_clear();
 	serial_info("setup ok");
@@ -351,10 +351,10 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 
 	// if (elf_load("HLWORLD", "OUT")) {
 
-	if (elf_load("CRASH", "OUT")) {
-		vga_printf("ELF load ok\n");
-		serial_info("ELF load ok");
-	}
+	// if (elf_load("CRASH", "OUT")) {
+	// 	vga_printf("ELF load ok\n");
+	// 	serial_info("ELF load ok");
+	// }
 
 	// u64 user_stack_phys = pmm_alloc_low();
 	// u64 *user_stack = (u64 *) 0x800000;

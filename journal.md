@@ -8,6 +8,8 @@ Since it's well-documented, decently simple and used on many Unix-like operating
 
 To compile assembly programs with NASM: `nasm -felf64 [FILE].s` to assembly then `ld [FILE].o -o [FILE]` to link, optionally `./[FILE]` to execute.
 
+Basic program loading works now. See `crash.s` - it tries to execute the privileged `cli` and `hlt` instructions, which of course is not allowed for user mode programs. After loading the program the OS immediately crashes with a general protection fault, which is exactly what we want to happen.
+
 ## Switch to User Mode / Ring 3
 
 The first step of being able to run user programs is to actually get into user mode, or Ring 3. This is where the CPU is operating usually, so that we do not have too many permissions for security reasons. How this usually works is that when the OS wants to do something privileged, like allocating memory or writing files, it will send a system call to the kernel, the CPU will switch back to kernel mode or Ring 0, do the thing that is requested if it is allowed, and then switch back to user mode and the user program.

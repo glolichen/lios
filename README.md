@@ -42,7 +42,7 @@ Sort of based on Linux, with other self-imposed janks as well.
 ## Sources
 
  * [OSTEP book](https://pages.cs.wisc.edu/~remzi/OSTEP/)
- * [Intel](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html) and [AMD](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/40332.pdf) manuals
+ * [Intel](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html) and [AMD](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/40332.pdf) manuals (and also [Felix Coutier's x86 reference](https://www.felixcloutier.com/x86/))
  * [QEMU docs](https://www.qemu.org/docs/master/index.html)
  * [Multiboot2 specification](https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html)
  * [OSDev Wiki](https://wiki.osdev.org)

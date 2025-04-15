@@ -59,12 +59,12 @@ checks_complete:
 	; PML4 points to PDPT
 	mov eax, no_offset(pdpt_low)
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov [no_offset(pml4)], eax
 	
 	mov eax, no_offset(pdpt_high)
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov [no_offset(pml4) + 511 * 8], eax
 
 	; move PML4 to CR3
@@ -75,28 +75,28 @@ checks_complete:
 	; 510 * 8 bytes = second to last PDPTE
 	mov eax, no_offset(pdt_high)
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov [no_offset(pdpt_high) + 510 * 8], eax
 
 	mov eax, no_offset(pdt_high) + 512 * 8
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov [no_offset(pdpt_high) + 511 * 8], eax
 
 	; first 2 PDPTEs point to low PDTs
 	mov eax, no_offset(pdt_low)
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov [no_offset(pdpt_low)], eax
 
 	mov eax, no_offset(pdt_low) + 512 * 8
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov [no_offset(pdpt_low) + 8], eax
 
 	mov eax, no_offset(pt_high)
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov ebx, no_offset(pdt_high)
 	; 2 PDTs, each with 512 entries
 	mov ecx, 2 * 512
@@ -111,7 +111,7 @@ populate_pdt_high_loop:
 
 	mov eax, 0
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov ebx, no_offset(pt_high)
 	; 512 PDEs = 512 PTs = 1024 * 512 PTEs
 	mov ecx, 1024 * 512
@@ -126,7 +126,7 @@ populate_pt_high_loop:
 
 	mov eax, no_offset(pt_low)
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 	mov ebx, no_offset(pdt_low)
 	; 2 PDTs, each with 512 entries
 	mov ecx, 2 * 512
@@ -141,7 +141,7 @@ populate_pdt_low_loop:
 
 	mov eax, 0
 	or eax, 0x03
-	or eax, 0x4
+	; or eax, 0x4
 
 	mov ebx, no_offset(pt_low)
 	; 512 PDEs = 512 PTs = 1024 * 512 PTEs
