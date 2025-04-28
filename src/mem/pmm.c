@@ -157,28 +157,31 @@ void pmm_free(PhysicalAddress mem) {
 // reserve parts of physical memory for something (just the frame buffer)
 // only works before anything is allocated
 void pmm_clear_blocks(u64 start, u64 end) {
-	// pretend it has to be above 2GiB, I guess
-	// find first and last node that need to be removed
-	struct PhysFreeListNode *cur = pmm_high, *start_node = 0, *end_node = 0;
-	while (cur != 0) {
-		if (cur->addr <= start - PAGE_SIZE)
-			start_node = cur;
-		if (cur->addr >= end) {
-			end_node = cur;
-			break;
-		}
-		cur = cur->next;
-	}
-
-	if (!start_node || !end_node) {
-		// serial_info("pmm: nothing to reserve");
-		return;
-	}
-
-	// skip everything from the start node to the end node
-	// serial_info("pmm: 0x%x points to 0x%x (reserve 0x%x -- 0x%x)",
-	// 		  start_node, end_node, start_node->next->addr, end_node->addr);
-	start_node->next = end_node->next;
+    struct PhysFreeListNode *prev = NULL;
+    struct PhysFreeListNode *cur = pmm_high;
+    
+    if (!cur) return; 
+    
+    // find nodes that need to be removed
+    while (cur) {
+        if (cur->addr >= start && cur->addr < end) {
+            if (prev) {
+                prev->next = cur->next;
+            } else {
+                pmm_high = cur->next;
+            }
+            
+            struct PhysFreeListNode *next = cur->next;
+            
+            cur->next = pmm_free_list;
+            pmm_free_list = cur;
+            
+            cur = next;
+        } else {
+            prev = cur;
+            cur = cur->next;
+        }
+    }
 }
 
 void pmm_log_status(void) {
