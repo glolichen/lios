@@ -111,7 +111,6 @@ irq_stub 15
 irq_stub 96
 
 exception_handler:
-	xchg bx, bx
 	pushregs
 	mov rdi, rsp
 	call handle_exception

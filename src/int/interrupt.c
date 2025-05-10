@@ -122,10 +122,6 @@ void interrupt_init() {
 	// use IRQ 96 because IRQs are configured to be (interrupt number - 32)
 	idt_set_entry(128, (u64) irq96, 0xEE);
 
-	// disable all irqs except keypress
-	outb(0x21, 0xFD);
-	outb(0xA1, 0xFF);
-
 	irq_set_routine(INT_KEYBOARD, keyboard_routine);
 	irq_set_routine(INT_SYSCALL, syscall_routine);
 

@@ -1,6 +1,8 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include "../util/const.h"
+
 // OSTEP P31, xv6 process
 struct CPU_Context {
 	u64 rip;

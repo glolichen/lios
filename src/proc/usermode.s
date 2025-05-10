@@ -7,10 +7,8 @@ bits 64
 
 ; second parameter = RSI = entry point
 enter_user_mode:
-	xchg bx, bx
-
 	; NOTE: ORing segment descriptor with 3 to set requestor privilege level (RPL)
-	; this is needed for IRET to not #GP -- RPL has to equal privilege of the segment
+	; this is needed for IRETQ to not #GP -- RPL has to equal privilege of the segment
 	
 	mov ax, 32 | 3
 	mov ds, ax

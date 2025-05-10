@@ -1,8 +1,10 @@
 global _start
 
+section .bss
+	text: resb 10
+
 section .data
-	text: db "Hello world", 10
-	length equ $-text
+	length equ 10
 
 ; NOTE: this will not work on Linux
 ; In 64 bit, Linux wants system calls to use Intel's syscall instruction
@@ -12,11 +14,18 @@ section .data
 
 section .text
 _start:
+	mov rax, 0
+	mov rdi, 0
+	mov rsi, text
+	mov rdx, length
+	syscall
+
 	mov rax, 1
 	mov rdi, 1
 	mov rsi, text
 	mov rdx, length
 	syscall
+
 	; int 0x80
 
 	mov rax, 60

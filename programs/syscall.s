@@ -15,5 +15,13 @@ _start:
 	int 128
 	int 128
 	int 128
-	hlt
+
+	mov rax, 0
+	mov rdi, 0
+	mov rsi, message
+	mov rdx, length
+	int 128
+
+	jmp $
+	; hlt
 

@@ -4,7 +4,8 @@
 
 LiOS now has system calls! Since I'm lazy, we will use the old-fashioned `int 80h` instead of the new `syscall` and `sysenter`. (Syscalls are needed for user programs to do things they do not usually have permission to do by asking the kernel to do it for them. This includes file reading and writing and IO from the terminal.) As with other operating systems, the user program would specify which routine it wants to be performed and other parameters by setting certain CPU registers. I will try to copy Linux ([Linux syscall table](https://filippo.io/linux-syscall-table/)) as much as possible.
 
-- `rax = 1`: `rdi` is the file descriptor (`rdi = 1` is standard output, this is the only supported option so far since I haven't gotten around to file descriptors yet), `rsi` is the buffer and `rdx` is the size in bytes.
+- `rax = 0`: read, `rdi` is the file descriptor (`rdi = 0` is standard input, this is the only supported option so far since I haven't gotten around to file descriptors yet), `rsi` is the buffer and `rdx` is the size in bytes.
+- `rax = 1`: write, `rdi` is the file descriptor (`rdi = 1` is standard output, this is the only supported option currently), `rsi` is the buffer and `rdx` is the size in bytes.
 - `rax = 999` (secret): print hello world, for testing purposes.
 
 ## Programs
@@ -28,7 +29,7 @@ The first step of being able to run user programs is to actually get into user m
 
 Since x86 sucks, there is no direct way to switch between the protection rings. One of the ways you can do this is pretend you are in an interrupt service routine (which are called after an interrupt, such as a system call, is called) (in the past, system calls were simply interrupts, and on 32-bit Linux this was interrupt vector 0x80, but it is now faster and recommended to use the dedicated `sysenter` and `syscall` isntructions). After an interrupt from Ring 0 to Ring 3, the CPU will switch "back" to Ring 3. We can simply trick the CPU into thinking it is in this state.
 
-After fighting with the `iret` instruction and the Task State Segment, we can now switch to user mode, except there is another problem...
+After fighting with the `iretq` instruction and the Task State Segment, we can now switch to user mode, except there is another problem...
 
 In order to make some pages accessible in Ring 3, we mark the page table entry, page directory entry, page directory pointer table entry and the PML4 entry with the user flag. It sounds straightforward enough that all lower half virtual memory are given to user processes, and should have the flag, while upper half virtual memory do not, as they have been. For some reason, this scheme causes some weird problems with the NVMe where the NVMe device claims to not support the command set.
 
