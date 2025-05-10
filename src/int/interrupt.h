@@ -12,11 +12,12 @@ struct __attribute__((packed)) InterruptData {
 struct __attribute__((packed)) IDTEntry {
 	u16 isr_low;
 	u16 segment; // kernel code segment
-	u8 ist; // low 3 IST, rest reserved
+	u8 ist : 3;
+	u8 reserved1 : 5;
 	u8 attributes;
 	u16 isr_mid;
 	u32 isr_high;
-	u32 reserved;
+	u32 reserved2;
 };
 
 struct __attribute__((packed)) IDTPointer {
@@ -73,6 +74,8 @@ extern void irq12(void);
 extern void irq13(void);
 extern void irq14(void);
 extern void irq15(void);
+
+extern void irq96(void);
 
 void handle_exception(const struct InterruptData *data);
 void handle_interrupt(const struct InterruptData *data);

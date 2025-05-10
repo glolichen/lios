@@ -1,4 +1,5 @@
 #include "interrupt.h"
+#include "syscall.h"
 #include "../util/const.h"
 #include "../io/keyboard.h"
 #include "../io/output.h"
@@ -8,13 +9,9 @@
 struct IDTEntry idt[256];
 struct IDTPointer idt_ptr;
 
-void (*irq_routines[16])(const struct InterruptData *) = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-void (*exception_handlers[32])(const struct InterruptData *) = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
+void (*irq_routines[256 - 32])(const struct InterruptData *) = {0};
+void (*exception_handlers[32])(const struct InterruptData *) = {0};
+
 void irq_set_routine(u8 irq_number, void (*routine)(const struct InterruptData *)) {
 	irq_routines[irq_number] = routine;
 }
@@ -69,6 +66,7 @@ void interrupt_init() {
 	for (u16 i = 0; i < 256; i++)
 		idt_set_entry(i, 0, 0);
 
+	// 0x8E = 0b10001110: interrupt, ring 0 permission
 	idt_set_entry(0,  (u64) exception0,  0x8E);
 	idt_set_entry(1,  (u64) exception1,  0x8E);
 	idt_set_entry(2,  (u64) exception2,  0x8E);
@@ -119,10 +117,18 @@ void interrupt_init() {
 	idt_set_entry(46, (u64) irq14, 0x8E);
 	idt_set_entry(47, (u64) irq15, 0x8E);
 
+	// "syscall" (using software interrupt, call with int 128 in assembly)
+	// 0xEE = 0b11101110: interrupt, ring 3 permission
+	// use IRQ 96 because IRQs are configured to be (interrupt number - 32)
+	idt_set_entry(128, (u64) irq96, 0xEE);
+
 	// disable all irqs except keypress
 	outb(0x21, 0xFD);
 	outb(0xA1, 0xFF);
+
 	irq_set_routine(INT_KEYBOARD, keyboard_routine);
+	irq_set_routine(INT_SYSCALL, syscall_routine);
+
 	exception_set_handler(EXCEPT_PAGE_FAULT, page_fault_handler);
 
 	idt_ptr.size = sizeof(idt) - 1;

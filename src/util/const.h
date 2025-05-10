@@ -165,6 +165,8 @@ enum {
 	INT_SECONDARY_ATA
 };
 
+#define INT_SYSCALL 96
+
 enum {
 	MBOOT_MEM_0,
 	MBOOT_MEM_AVAILABLE,

@@ -15,7 +15,7 @@ void test_div0(void) {
 }
 
 void fat32_test(void) {
-	struct FAT32_OpenResult file_data = fat32_open("CRASH", "OUT");
+	struct FAT32_OpenResult file_data = fat32_open("SYSCALL", "OUT");
 	if (file_data.cluster == 0)
 		vga_printf("file read error: %s\n", FAT32_OPEN_ERRORS[file_data.size_or_error.error]);
 	else {

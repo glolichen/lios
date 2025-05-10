@@ -1,5 +1,12 @@
 # LiOS Journal
 
+## System Calls
+
+LiOS now has system calls! Since I'm lazy, we will use the old-fashioned `int 80h` instead of the new `syscall` and `sysenter`. (Syscalls are needed for user programs to do things they do not usually have permission to do by asking the kernel to do it for them. This includes file reading and writing and IO from the terminal.) As with other operating systems, the user program would specify which routine it wants to be performed and other parameters by setting certain CPU registers. I will try to copy Linux ([Linux syscall table](https://filippo.io/linux-syscall-table/)) as much as possible.
+
+- `rax = 1`: `rdi` is the file descriptor (`rdi = 1` is standard output, this is the only supported option so far since I haven't gotten around to file descriptors yet), `rsi` is the buffer and `rdx` is the size in bytes.
+- `rax = 999` (secret): print hello world, for testing purposes.
+
 ## Programs
 
 Some other parts of the file system can wait for now, such as some optimizations and importantly the ability to write files. With our newfound ability to read files, we can now turn our attention to reading and executing programs.
@@ -9,6 +16,11 @@ Since it's well-documented, decently simple and used on many Unix-like operating
 To compile assembly programs with NASM: `nasm -felf64 [FILE].s` to assembly then `ld [FILE].o -o [FILE]` to link, optionally `./[FILE]` to execute.
 
 Basic program loading works now. See `crash.s` - it tries to execute the privileged `cli` and `hlt` instructions, which of course is not allowed for user mode programs. After loading the program the OS immediately crashes with a general protection fault, which is exactly what we want to happen.
+
+For future me: it is recommended to open two extra terminals. One should be used to mount and unmount the disk. After running `sudo losetup -Pf --show disk.img` to set up the loop device, change directory to `/home/jayden/Desktop/Programs/os`. Mount the disk with `sudo mount /dev/loop0p1 disk/`. **After making changes to the disk image by copying new programs, make sure to unmount the disk with `sudo umount /dev/loop0p1`!!** Otherwise the changes will not be written!!
+
+The other should be in `/home/jayden/Desktop/Programs/os/programs` where programs can be assembled and linked easily with one command: `nasm -felf64 [FILE].s && ld [FILE].o -o [FILE]`. Copy to the disk with `sudo cp [FILE] ../disk/[FILE]`.
+
 
 ## Switch to User Mode / Ring 3
 

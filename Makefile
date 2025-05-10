@@ -1,4 +1,4 @@
-OBJECTS = src/loader.o src/kmain.o src/util/const.o src/int/interrupt.o src/int/interrupts.o src/util/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/util/kmath.o src/file/acpi.o src/file/nvme.o src/file/gpt.o src/file/fat32.o src/util/misc.o src/util/hexdump.o src/proc/usermode.o src/proc/elf.o
+OBJECTS = src/loader.o src/kmain.o src/util/const.o src/int/interrupt.o src/int/interrupts.o src/util/panic.o src/io/io.o src/io/keyboard.o src/io/output.o src/io/vga.o src/io/serial.o src/io/vgafont.o src/mem/vmalloc.o src/mem/kmalloc.o src/mem/page.o src/mem/vmm.o src/mem/pmm.o src/testing.o src/util/kmath.o src/file/acpi.o src/file/nvme.o src/file/gpt.o src/file/fat32.o src/util/misc.o src/util/hexdump.o src/proc/usermode.o src/proc/elf.o src/int/syscall.o
 
 ASM = nasm
 ASM_FLAGS = -f elf64

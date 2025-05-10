@@ -331,7 +331,7 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 
 	vga_clear();
 	serial_info("setup ok");
-	vga_printf("setup ok\n");
+	// vga_printf("setup ok\n");
 
 	// test_run_tests();
 
@@ -349,12 +349,11 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	u64 new_kernel_stack = (u64) kmalloc_page();
 	tss->rsp0 = new_kernel_stack;
 
-	// if (elf_load("HLWORLD", "OUT")) {
-
+	if (elf_load("SYSCALL", "OUT")) {
 	// if (elf_load("CRASH", "OUT")) {
-	// 	vga_printf("ELF load ok\n");
-	// 	serial_info("ELF load ok");
-	// }
+		vga_printf("ELF load ok\n");
+		serial_info("ELF load ok");
+	}
 
 	// u64 user_stack_phys = pmm_alloc_low();
 	// u64 *user_stack = (u64 *) 0x800000;

@@ -16,7 +16,7 @@ bool elf_load(const char *name, const char *ext) {
 	if (file_data.cluster == 0)
 		return false;
 
-	vga_printf("file read size: %u\n", file_data.size_or_error.size);
+	serial_info("file read size: %u\n", file_data.size_or_error.size);
 	void *buffer = vcalloc(file_data.size_or_error.size * 512);
 	fat32_read(file_data.cluster, file_data.size_or_error.size, buffer);
 

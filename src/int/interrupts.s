@@ -108,6 +108,7 @@ irq_stub 12
 irq_stub 13
 irq_stub 14
 irq_stub 15
+irq_stub 96
 
 exception_handler:
 	xchg bx, bx
