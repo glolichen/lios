@@ -47,12 +47,14 @@ void test_run_tests(void) {
 
 	void *thing1 = vmalloc(8);
 	void *thing2 = vmalloc(8);
+	void *thing3 = vmalloc(8);
 
 	vga_printf("TEST: thing1 = 0x%x\n", thing1);
 	vga_printf("TEST: thing2 = 0x%x\n", thing2);
 	
 	vmalloc_log_status();
 	vfree(thing2);
+	vfree(thing3);
 
 	// void *thing3 = vmalloc(8);
 	// vga_printf("TEST: thing3 = 0x%x\n", thing3);

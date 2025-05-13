@@ -332,7 +332,7 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	serial_info("setup ok");
 	// vga_printf("setup ok\n");
 
-	test_run_tests();
+	// test_run_tests();
 
 	// test_div0();
 
@@ -358,6 +358,6 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 
 	// elf_load("CRASH", "OUT");
 	// elf_load("HLWORLD", "OUT");
-	// elf_load("INPUT", "OUT");
+	elf_load("INPUT", "OUT");
 }
 
