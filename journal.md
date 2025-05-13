@@ -8,6 +8,10 @@ LiOS now has system calls! Since I'm lazy, we will use the old-fashioned `int 80
 - `rax = 1`: write, `rdi` is the file descriptor (`rdi = 1` is standard output, this is the only supported option currently), `rsi` is the buffer and `rdx` is the size in bytes.
 - `rax = 999` (secret): print hello world, for testing purposes.
 
+### Heap allocator is broken
+
+Using `vmalloc` and `vfree` occasionally results in "panic: vfree: something is very wrong" which is obviously not good.
+
 ## Programs
 
 Some other parts of the file system can wait for now, such as some optimizations and importantly the ability to write files. With our newfound ability to read files, we can now turn our attention to reading and executing programs.

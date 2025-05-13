@@ -1,7 +1,7 @@
 #include "interrupt.h"
 #include "syscall.h"
+#include "keyboard.h"
 #include "../util/const.h"
-#include "../io/keyboard.h"
 #include "../io/output.h"
 #include "../io/io.h"
 #include "../mem/page.h"
@@ -118,9 +118,11 @@ void interrupt_init() {
 	idt_set_entry(47, (u64) irq15, 0x8E);
 
 	// "syscall" (using software interrupt, call with int 128 in assembly)
-	// 0xEE = 0b11101110: interrupt, ring 3 permission
+	// 0xEF = 0b11101111: trap gate, ring 3 permission
+	// 0xEE (interrupts) are used for hardware interrupts
 	// use IRQ 96 because IRQs are configured to be (interrupt number - 32)
-	idt_set_entry(128, (u64) irq96, 0xEE);
+	
+	idt_set_entry(128, (u64) irq96, 0xEF);
 
 	irq_set_routine(INT_KEYBOARD, keyboard_routine);
 	irq_set_routine(INT_SYSCALL, syscall_routine);

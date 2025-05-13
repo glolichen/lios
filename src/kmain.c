@@ -313,7 +313,6 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	vga_clear();
 	vga_printf("Booting...");
 
-	// WARN: renable for QEMU
 	if (!efi_table)
 		panic("no EFI system table found!");
 
@@ -333,7 +332,7 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	serial_info("setup ok");
 	// vga_printf("setup ok\n");
 
-	// test_run_tests();
+	test_run_tests();
 
 	// test_div0();
 
@@ -349,15 +348,16 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	u64 new_kernel_stack = (u64) kmalloc_page();
 	tss->rsp0 = new_kernel_stack;
 
-	// loads programs/syscall.s
-	elf_load("SYSCALL", "OUT");
-
-	// elf_load("CRASH", "OUT");
 
 	// u64 user_stack_phys = pmm_alloc_low();
 	// u64 *user_stack = (u64 *) 0x800000;
 	// page_map((u64) user_stack, user_stack_phys, false);
 
 	// enter_user_mode((u64) user_stack + 0x1000);
+
+
+	// elf_load("CRASH", "OUT");
+	// elf_load("HLWORLD", "OUT");
+	// elf_load("INPUT", "OUT");
 }
 

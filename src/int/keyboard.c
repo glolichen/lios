@@ -1,26 +1,29 @@
 #include "keyboard.h"
-#include "io.h"
-#include "output.h"
-#include "vga.h"
+#include "interrupt.h"
+#include "../io/io.h"
+#include "../io/output.h"
+#include "../io/vga.h"
 #include "../util/const.h"
 #include "../util/misc.h"
-#include "../int/interrupt.h"
+#include "../mem/vmalloc.h"
 #include "../testing.h"
 
 #define LSHIFT 42
 #define RSHIFT 54
-
+#define SPACE 57
 #define ENTER 28
+#define BACKSPACE 14
 
 bool is_shift_held = false;
 
 bool is_recording = false;
 
 u8 *pressed;
-u64 pressed_size = 0;
+u64 pressed_size = 0, pressed_capacity = 0;
 
 void keyboard_routine(const struct InterruptData *data) {
 	u8 scan = inb(0x60);
+	
 	if (scan < MAX_KEYCODE) {
 		if (scan == LSHIFT || scan == RSHIFT)
 			is_shift_held = true;
@@ -103,13 +106,33 @@ void keyboard_routine(const struct InterruptData *data) {
 
 			vga_putchar(c);
 			if (is_recording) {
-				pressed_size++;
+				// if adding another element to list would be larger than capacity
+				if (pressed_size + 1 > pressed_capacity) {
+					u8 *pressed_copy = pressed;
+					pressed = (u8 *) vcalloc((pressed_capacity *= 2) * sizeof(u8));
+					
+					serial_info("new pressed: 0x%x, previous pressed: 0x%x", pressed, pressed_copy);
+
+					for (u32 i = 0; i < pressed_size; i++)
+						pressed[i] = pressed_copy[i];
+
+					vfree(pressed_copy);
+				}
+				pressed[pressed_size++] = c;
 			}
 		}
-
-		if (scan == 28) {
+		else if (scan == BACKSPACE) {
+			vga_putchar('\b');
+			vga_putchar(' ');
+			vga_putchar('\b');
+			if (is_recording) {
+				// TODO: finish
+				pressed_size--;
+			}
+		}
+		else if (scan == ENTER) {
 			is_recording = false;
-			vga_printf("new line\n");
+			vga_printf("\n");
 		}
 	}
 	else if (scan >= 0x81 && scan <= 0xD7) {
@@ -128,7 +151,8 @@ void keyboard_routine(const struct InterruptData *data) {
 }
 
 void keyboard_start_recording(void) {
-	pressed_size = 0;
+	pressed_size = 0, pressed_capacity = 8;
+	pressed = (u8 *) vcalloc(pressed_capacity * sizeof(u8));
 	is_recording = true;
 }
 bool keyboard_is_recording(void) {

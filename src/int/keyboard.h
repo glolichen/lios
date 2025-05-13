@@ -2,7 +2,7 @@
 #define KEYBOARD_H
 
 #include <stdbool.h>
-#include "../int/interrupt.h"
+#include "interrupt.h"
 
 void keyboard_routine(const struct InterruptData *data);
 void keyboard_start_recording(void);

@@ -1,10 +1,11 @@
 // this file contains functions from both libgcc and any libc
-// this is not meant to implement any, just some useful utilities for the kernel
+// this is not meant to implement everything, just some useful utilities for the kernel
+// I am not responsible for most/all of the functions here, check the comments for attribution
 
 #include "misc.h"
 #include "const.h"
 
-// https://github.com/gcc-mirror/gcc/blob/master/libgcc/memcpy.c
+// from libgcc https://github.com/gcc-mirror/gcc/blob/master/libgcc/memcpy.c
 void *memcpy(void *dest, const void *src, u64 len) {
 	char *d = dest;
 	const char *s = src;
@@ -13,7 +14,7 @@ void *memcpy(void *dest, const void *src, u64 len) {
 	return dest;
 }
 
-// https://github.com/gcc-mirror/gcc/blob/master/libgcc/memset.c
+// from libgcc https://github.com/gcc-mirror/gcc/blob/master/libgcc/memset.c
 void *memset(void *dest, u32 val, u64 len) {
 	unsigned char *ptr = dest;
 	while (len-- > 0)

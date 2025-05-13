@@ -103,7 +103,7 @@ const char *KEYCODES[] = {
 	"<RShift>",
 	"<Keypad *>",
 	"<LAlt>",
-	"<Space>",
+	" ",
 	"<CapsLock>",
 	"<F1>",
 	"<F2>",

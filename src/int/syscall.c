@@ -1,7 +1,7 @@
 #include "syscall.h"
+#include "keyboard.h"
 #include "../io/vga.h"
 #include "../io/output.h"
-#include "../io/keyboard.h"
 #include "../io/io.h"
 #include "../util/const.h"
 #include "../int/interrupt.h"
@@ -20,14 +20,8 @@ void syscall_routine(const struct InterruptData *data) {
 				char *buffer = (char *) data->rsi;
 				u64 size = data->rdx;
 
-				vga_printf("received read syscall\n");
-
-				asm volatile("jmp $");
-
-				// keyboard_start_recording();
-				// while (keyboard_is_recording());
-				//
-				// vga_printf("you pressed: %u keys\n", keyboard_get_recording());
+				keyboard_start_recording();
+				while (keyboard_is_recording());
 			}
 
 			break;

@@ -15,7 +15,7 @@ void test_div0(void) {
 }
 
 void fat32_test(void) {
-	struct FAT32_OpenResult file_data = fat32_open("SYSCALL", "OUT");
+	struct FAT32_OpenResult file_data = fat32_open("TEST", "TXT");
 	if (file_data.cluster == 0)
 		vga_printf("file read error: %s\n", FAT32_OPEN_ERRORS[file_data.size_or_error.error]);
 	else {
@@ -26,7 +26,7 @@ void fat32_test(void) {
 		vfree(buffer);
 	}
 
-	// struct FAT32_NewFileResult info = fat32_new_file("peddie", "die");
+	// struct FAT32_NewFileResult info = fat32_new_file("NEWFILE", "TXT");
 	// if (info.fd != 0)
 	// 	vga_printf("new file creation successful at %u\n", info.fd);
 	// else
@@ -34,19 +34,35 @@ void fat32_test(void) {
 }
 
 void test_run_tests(void) {
-	vga_printf("starting tests\n");
+	// vga_printf("starting tests\n");
+	//
+	// fat32_test();
 
-	fat32_test();
+	// return;
 
-	return;
+	// vmm_log_status();
+	// vmalloc_log_status();
 
-	vmm_log_status();
+	serial_info("========== TESTING START ==========");
+
+	void *thing1 = vmalloc(8);
+	void *thing2 = vmalloc(8);
+
+	vga_printf("TEST: thing1 = 0x%x\n", thing1);
+	vga_printf("TEST: thing2 = 0x%x\n", thing2);
+	
 	vmalloc_log_status();
+	vfree(thing2);
 
-	void *thing = vmalloc(5000);
-	vfree(thing);
+	// void *thing3 = vmalloc(8);
+	// vga_printf("TEST: thing3 = 0x%x\n", thing3);
+
+	// vfree(thing1);
+
 
 	vga_printf("ok\n");
+
+	return;
 	
 	u64 addrs[5];
 	for (int i = 0; i < 5; i++) {

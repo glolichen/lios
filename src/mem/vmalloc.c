@@ -7,9 +7,9 @@
 #include "../util/kmath.h"
 #include "../util/misc.h"
 
-#define SET_BIT(num, pos) (num |= ((u64) 1) << (pos))
-#define UNSET_BIT(num, pos) (num &= ~(((u64) 1) << (pos)))
-#define QUERY_BIT(num, pos) ((num >> (pos)) & ((u64) 1))
+#define SET_BIT(num, pos) ((num) |= ((u64) 1) << (pos))
+#define UNSET_BIT(num, pos) ((num) &= ~(((u64) 1) << (pos)))
+#define QUERY_BIT(num, pos) (((num) >> (pos)) & ((u64) 1))
 
 // sort of based on https://wiki.osdev.org/User:Pancakes/BitmapHeapImplementation
 // I thought of this system after viewing their interactive website for a bit,
@@ -65,7 +65,7 @@ void add_block(u32 wanted_size) {
 }
 
 void vmalloc_init(void) {
-	add_block(1);
+	add_block(32);
 }
 
 void mark_bitmap(struct HeapBitmapNode *node, u64 start, u64 bits) {
@@ -159,7 +159,7 @@ void *vmalloc(u64 size) {
 	// no memory left, allocate more blocks
 	// u64 pages64 = ceil_u64_div(size, PAGE_SIZE);
 	// if (pages64 & 0xFFFFFFFF00000000)
-	// 	panic("kmalloc: you asked for too much memory"); // lol yeah
+	// 	panic("vmalloc: you asked for too much memory"); // lol yeah
 
 	add_block(size);
 	

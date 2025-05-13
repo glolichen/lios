@@ -39,7 +39,7 @@ bool elf_load(const char *name, const char *ext) {
 	if (ident[5] != 1)
 		return false;
 
-	// must be current version of ELD
+	// must be current version of ELF
 	if (ident[6] != 1)
 		return false;
 
@@ -60,7 +60,7 @@ bool elf_load(const char *name, const char *ext) {
 
 	u64 entry_point = header->e_entry;
 
-	// NOTE: ph = program heder, sh = section header
+	// NOTE: ph = program header, sh = section header
 	u64 ph_start = header->e_phoff;
 	u64 sh_start = header->e_shoff;
 
@@ -104,6 +104,8 @@ bool elf_load(const char *name, const char *ext) {
 		u64 align = ph[i].p_align;
 
 		void *segment = (void *) virt_addr;
+
+		// FIXME: only works on segments <4KiB, anything larger will break!!!
 		u64 phys = pmm_alloc_high();
 		page_map((u64) segment, phys, false);
 

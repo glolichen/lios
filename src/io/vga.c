@@ -90,6 +90,17 @@ void vga_putchar(char c) {
 		return;
 	}
 
+	// backspace
+	if (c == '\b') {
+		if (cur_col != 0)
+			cur_col--;
+		else if (cur_row != 0) {
+			cur_col = pixel_width / 8 - 1;
+			cur_row--;
+		}
+		return;
+	}
+
 	vga_chars[get_pos(cur_row, cur_col)] = c;
 	draw_char(cur_row, cur_col, c);
 

@@ -16,7 +16,7 @@ enter_user_mode:
 	mov fs, ax 
 	mov gs, ax
 
-	; push user iata segment
+	; push user data segment
 	push 32 | 3
 
 	; push first parameter, which is the stack pointer
