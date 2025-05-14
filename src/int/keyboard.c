@@ -155,10 +155,21 @@ void keyboard_start_recording(void) {
 	pressed = (u8 *) vcalloc(pressed_capacity * sizeof(u8));
 	is_recording = true;
 }
+
 bool keyboard_is_recording(void) {
 	return is_recording;
 }
-u32 keyboard_get_recording(void) {
-	return pressed_size;
+
+struct KeyboardRecordingList keyboard_get_recording(void) {
+	struct KeyboardRecordingList ret;
+	ret.pressed_keys = pressed;
+	ret.length = pressed_size;
+	return ret;
+}
+
+void keyboard_end_recording(void) {
+	pressed_size = 0, pressed_capacity = 0;
+	vfree(pressed);
+	is_recording = false;
 }
 
