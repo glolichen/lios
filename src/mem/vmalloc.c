@@ -19,8 +19,13 @@
 
 struct HeapBitmapNode {
 	struct HeapBitmapNode *next;
+	
+	// in number of bits, each bit represents whether a section is used
+	u64 bitmap_size;
+
 	// in number of entries, which is the same as # of bytes
-	u64 bitmap_size, total_size;
+	u64 total_size;
+
 	// split into bitmap and data section
 	u8 mem[];
 };
@@ -32,21 +37,20 @@ struct HeapBitmapNode *heap_head = 0, *heap_tail = 0;
 
 void add_block(u64 wanted_sections) {
 	u64 wanted_bytes = wanted_sections * SECTION_SIZE;
-	u64 bitmap_size = ceil_u64_div(wanted_sections, 8);
-	u64 block_total = wanted_bytes + bitmap_size;
+	u64 block_total = wanted_bytes + wanted_sections;
 
 	u64 pages = ceil_u64_div(block_total, PAGE_SIZE);
 
 	serial_info("vmalloc: request extra block of size %u bytes:", wanted_bytes);
-	serial_info("    bitmap size %u, total size %u, pages %u", bitmap_size, block_total, pages);
+	serial_info("    bitmap %u bits, total size %u, %u pages", wanted_sections, block_total, pages);
 
 	struct HeapBitmapNode *addr = (struct HeapBitmapNode *) vmm_alloc(pages);
 	addr->next = 0;
 	addr->total_size = block_total;
-	addr->bitmap_size = bitmap_size;
+	addr->bitmap_size = wanted_sections;
 
 	// initialize bitmap values to 0 (indicating free)
-	for (u64 i = 0; i < bitmap_size; i++)
+	for (u64 i = 0; i < wanted_sections; i++)
 		addr->mem[i] = 0;
 
 	if (!heap_head && !heap_tail) {
@@ -109,9 +113,6 @@ void unmark_bitmap(struct HeapBitmapNode *node, u64 start, u64 bits) {
 }
 
 void *vmalloc(u64 size) {
-	serial_info("");
-	serial_info("---------- vmalloc Start ----------");
-
 	u64 real_size = size;
 	size += sizeof(struct HeapBlockHeader);
 
@@ -121,39 +122,52 @@ void *vmalloc(u64 size) {
 	
 	struct HeapBitmapNode *cur = heap_head;
 	while (cur != 0) {
-		u64 bitmap_size = cur->bitmap_size;
-		serial_info("vmalloc: size %u %u", bitmap_size, cur->total_size);
 		u64 sections_found = 0, block_start = 0;
-		for (u64 i = 0; i < bitmap_size; i++) {
-			// if (cur->mem[i] == 0 && sections_found + 8 < sections_needed) {
-			// 	sections_found += 8;
-			// 	continue;
-			// }
 
-			for (u32 j = 0; j < 8; j++) {
-				// 1 = used, set to zero
-				if (QUERY_BIT(cur->mem[i], j))
-					sections_found = 0;
-				else {
-					if (sections_found == 0)
-						block_start = i * 8 + j;
-					sections_found++;
+		for (u64 i = 0; i < cur->bitmap_size; i++) {
+			// 1 = used, set to zero
+			if (QUERY_BIT(cur->mem[i / 8], i % 8))
+				sections_found = 0;
+			else {
+				if (sections_found == 0)
+					block_start = i;
+
+				// can skip over more than a bit (this is a SIGNIFICANT optimization)
+				if (i % 8 == 0) {
+					if (i < cur->bitmap_size - 64 && sections_found + 64 < sections_needed) {
+						if (*((u64 *) ((u64) cur->mem + i / 8)) == 0) {
+							sections_found += 64 / SECTION_SIZE;
+							continue;
+						}
+					}
+					if (i < cur->bitmap_size - 32 && sections_found + 32 < sections_needed) {
+						if (*((u32 *) ((u64) cur->mem + i / 8)) == 0) {
+							sections_found += 32 / SECTION_SIZE;
+							continue;
+						}
+					}
+					if (i < cur->bitmap_size - 16 && sections_found + 16 < sections_needed) {
+						if (*((u16 *) ((u64) cur->mem + i / 8)) == 0) {
+							sections_found += 16 / SECTION_SIZE;
+							continue;
+						}
+					}
 				}
 
-				if (sections_found == sections_needed) {
-					mark_bitmap(cur, block_start, sections_needed);
+				sections_found++;
+			}
 
-					u64 addr = (u64) cur->mem + cur->bitmap_size + block_start * SECTION_SIZE;
-					((struct HeapBlockHeader *) addr)->size = sections_needed;
-					addr += sizeof(struct HeapBlockHeader);
+			if (sections_found == sections_needed) {
+				mark_bitmap(cur, block_start, sections_needed);
 
-					serial_info("vmalloc: return address 0x%x in node 0x%x at bitmap offset %u",
-							addr, cur, block_start);
+				u64 addr = (u64) cur->mem + ceil_u64_div(cur->bitmap_size, 8) + block_start * SECTION_SIZE;
+				((struct HeapBlockHeader *) addr)->size = sections_needed;
+				addr += sizeof(struct HeapBlockHeader);
 
-					serial_info("---------- vmalloc OK ----------");
-					serial_info("");
-					return (void *) addr;
-				}
+				serial_info("vmalloc: return address 0x%x in node 0x%x at bitmap offset %u",
+						addr, cur, block_start);
+
+				return (void *) addr;
 			}
 		}
 		cur = cur->next;
@@ -184,8 +198,7 @@ void release_if_unused(struct HeapBitmapNode *prev, struct HeapBitmapNode *node)
 	if (prev->next != node)
 		panic("vmalloc: assertion failed!");
 
-	u64 bitmap_size = node->bitmap_size;
-	for (u64 i = 0; i < bitmap_size; i++) {
+	for (u64 i = 0; i < ceil_u64_div(node->bitmap_size, 8); i++) {
 		// something is being used
 		if (node->mem[i])
 			return;
@@ -201,9 +214,6 @@ void release_if_unused(struct HeapBitmapNode *prev, struct HeapBitmapNode *node)
 }
 
 void vfree(const void *mem) {
-	serial_info("");
-	serial_info("---------- Heap Free Start ----------");
-
 	// I love C.
 	u64 size = ((struct HeapBlockHeader *) ((u64) mem - sizeof(struct HeapBlockHeader)))->size;
 	// move it back to get the "real" location
@@ -213,21 +223,13 @@ void vfree(const void *mem) {
 
 	struct HeapBitmapNode *cur = heap_head, *prev = heap_head;
 	while (cur != 0) {
-		u64 total_size = cur->total_size, bitmap_size = cur->bitmap_size;
+		u64 total_size = cur->total_size, bitmap_size = ceil_u64_div(cur->bitmap_size, 8);
 		u64 cur_addr = (u64) cur;
-
-		serial_info("vfree: node address 0x%x", cur_addr);
-		serial_info("vfree: node available moemory 0x%x -- 0x%x", cur_addr + bitmap_size, cur_addr + total_size);
-		serial_info("vfree: node: bitmap %u total %u", bitmap_size, total_size);
-		serial_info("");
 
 		if (cur_addr + bitmap_size <= (u64) mem && (u64) mem <= cur_addr + total_size) {
 			u64 bitmap_offset = ((u64) mem - (cur_addr + bitmap_size)) / SECTION_SIZE;
 			unmark_bitmap(cur, bitmap_offset, size);
-			// release_if_unused(prev, cur);
-
-			serial_info("---------- Heap Free OK ----------");
-			serial_info("");
+			release_if_unused(prev, cur);
 			return;
 		}
 
@@ -243,7 +245,7 @@ void vmalloc_log_status(void) {
 	serial_debug("vmalloc: printing status");
 	struct HeapBitmapNode *cur = heap_head;
 	while (cur != 0) {
-		u32 total_size = cur->total_size, bitmap_size = cur->bitmap_size;
+		u32 total_size = cur->total_size, bitmap_size = ceil_u64_div(cur->bitmap_size, 8);
 		serial_debug("vmalloc: node addr 0x%x, total size 0x%x, bitmap %u entries (size 0x%x)",
 			   (u64) cur, total_size, bitmap_size / 8, bitmap_size);
 		serial_debug("vmalloc: bitmap contents:");
