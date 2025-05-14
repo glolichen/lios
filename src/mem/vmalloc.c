@@ -30,13 +30,14 @@ struct HeapBlockHeader {
 
 struct HeapBitmapNode *heap_head = 0, *heap_tail = 0;
 
-void add_block(u64 wanted_size) {
-	u64 bitmap_size = ceil_u64_div(ceil_u64_div(wanted_size, SECTION_SIZE), 8);
-	u64 block_total = wanted_size + bitmap_size;
+void add_block(u64 wanted_sections) {
+	u64 wanted_bytes = wanted_sections * SECTION_SIZE;
+	u64 bitmap_size = ceil_u64_div(wanted_sections, 8);
+	u64 block_total = wanted_bytes + bitmap_size;
 
 	u64 pages = ceil_u64_div(block_total, PAGE_SIZE);
 
-	serial_info("vmalloc: request extra block of size %u:", wanted_size);
+	serial_info("vmalloc: request extra block of size %u bytes:", wanted_bytes);
 	serial_info("    bitmap size %u, total size %u, pages %u", bitmap_size, block_total, pages);
 
 	struct HeapBitmapNode *addr = (struct HeapBitmapNode *) vmm_alloc(pages);
@@ -62,7 +63,7 @@ void add_block(u64 wanted_size) {
 }
 
 void vmalloc_init(void) {
-	add_block(32);
+	add_block(32 / SECTION_SIZE);
 }
 
 void mark_bitmap(struct HeapBitmapNode *node, u64 start, u64 bits) {
@@ -163,7 +164,7 @@ void *vmalloc(u64 size) {
 	// if (pages64 & 0xFFFFFFFF00000000)
 	// 	panic("vmalloc: you asked for too much memory"); // lol yeah
 
-	add_block(size);
+	add_block(ceil_u64_div(size, SECTION_SIZE));
 	
 	// this is very wasteful, but I'm lazy
 	return vmalloc(size);
