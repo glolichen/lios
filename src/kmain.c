@@ -348,7 +348,6 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	u64 new_kernel_stack = (u64) kmalloc_page();
 	tss->rsp0 = new_kernel_stack;
 
-
 	// u64 user_stack_phys = pmm_alloc_low();
 	// u64 *user_stack = (u64 *) 0x800000;
 	// page_map((u64) user_stack, user_stack_phys, false);

@@ -5,6 +5,6 @@
 __attribute__((noreturn))
 void panic(const char *msg) {
 	serial_error("panic: %s", msg);
-	vga_printf("panic: %s\n", msg);
+	vga_printf("\npanic: %s\n", msg);
 	asm volatile("cli; hlt; jmp $" ::: "memory");
 }

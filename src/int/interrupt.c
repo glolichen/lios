@@ -5,6 +5,7 @@
 #include "../io/output.h"
 #include "../io/io.h"
 #include "../mem/page.h"
+#include "timer.h"
 
 struct IDTEntry idt[256];
 struct IDTPointer idt_ptr;
@@ -124,8 +125,17 @@ void interrupt_init() {
 	
 	idt_set_entry(128, (u64) irq96, 0xEF);
 
+	irq_set_routine(INT_TIMER, timer_routine);
 	irq_set_routine(INT_KEYBOARD, keyboard_routine);
 	irq_set_routine(INT_SYSCALL, syscall_routine);
+
+	// mask port of primary PIC
+	// 0xFF = 0b11111111 = all masked
+	outb(0xA1, 0xFF);
+
+	// mask port of secondary PIC
+	// 0xFD = 0b11111100 = mask all but 0 (timer), 1 (keyboard)
+	outb(0x21, 0xFC);
 
 	exception_set_handler(EXCEPT_PAGE_FAULT, page_fault_handler);
 

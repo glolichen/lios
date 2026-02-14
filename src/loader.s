@@ -232,17 +232,6 @@ populate_pt_low_loop:
 	mov al, 0
 	out dx, al
 
-	; outb(0x21, 0xFD);
-	; outb(0xA1, 0xFF);
-
-	mov dx, 0x21
-	mov al, 0xFD
-	out dx, al
-
-	mov dx, 0xA1
-	mov al, 0xFF
-	out dx, al
-
 	lgdt [no_offset(gdt_ptr)]
 	jmp 0x08:long_mode_start
 

@@ -24,6 +24,7 @@ void syscall_routine(const struct InterruptData *data) {
 				keyboard_start_recording();
 				while (keyboard_is_recording());
 				struct KeyboardRecordingList recording = keyboard_get_recording();
+				memset(buffer, 0, size);
 				memcpy(buffer, recording.pressed_keys, min(size, recording.length));
 				keyboard_end_recording();
 			}

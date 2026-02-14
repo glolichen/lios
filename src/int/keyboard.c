@@ -5,16 +5,19 @@
 #include "../io/vga.h"
 #include "../util/const.h"
 #include "../util/misc.h"
+#include "../util/panic.h"
 #include "../mem/vmalloc.h"
+
 #include "../testing.h"
 
 #define LSHIFT 42
 #define RSHIFT 54
+#define CONTROL 29
 #define SPACE 57
 #define ENTER 28
 #define BACKSPACE 14
 
-bool is_shift_held = false;
+bool is_shift_held = false, is_control_held = false;
 
 bool is_recording = false;
 
@@ -23,10 +26,14 @@ u64 pressed_size = 0, pressed_capacity = 0;
 
 void keyboard_routine(const struct InterruptData *data) {
 	u8 scan = inb(0x60);
+
+	// vga_printf("%u\n", scan);
 	
 	if (scan < MAX_KEYCODE) {
 		if (scan == LSHIFT || scan == RSHIFT)
 			is_shift_held = true;
+		if (scan == CONTROL)
+			is_control_held = true;
 
 		const char *str = KEYCODES[scan];
 		if (strlen(str) == 1) {
@@ -104,6 +111,11 @@ void keyboard_routine(const struct InterruptData *data) {
 				}
 			}
 
+			if (is_control_held) {
+				if (c == 'm')
+					panic("System Halted");
+			}
+
 			vga_putchar(c);
 			if (is_recording) {
 				// if adding another element to list would be larger than capacity
@@ -125,10 +137,10 @@ void keyboard_routine(const struct InterruptData *data) {
 			vga_putchar('\b');
 			vga_putchar(' ');
 			vga_putchar('\b');
-			if (is_recording) {
-				// TODO: finish
-				pressed_size--;
-			}
+
+			// could change capacity, but won't
+			if (is_recording)
+				pressed[--pressed_size] = 0;
 		}
 		else if (scan == ENTER) {
 			is_recording = false;
@@ -139,6 +151,8 @@ void keyboard_routine(const struct InterruptData *data) {
 		u8 released_key = scan - 0x80;
 		if (released_key == LSHIFT || released_key == RSHIFT)
 			is_shift_held = false;
+		if (released_key == CONTROL)
+			is_control_held = false;
 
 		// vga_printf("<%s released>\n", KEYCODES[scan - 0x80]);
 	}
