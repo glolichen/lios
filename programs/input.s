@@ -7,6 +7,7 @@ length equ $-message
 message2: db "You typed: "
 length2 equ $-message2
 
+; max 32 characters (8 * 4 = 32)
 entered_message: dq 0, 0, 0, 0
 entered_length equ $-entered_message
 

@@ -3,6 +3,11 @@
 
 #include "../util/const.h"
 
+// 8 MiB, like Linux
+#define STACK_SIZE 0x800000
+// highest lower half / "user" memory address
+#define LOWER_HALF_MEM_MAX 0x00007FFFFFFFFFFF
+
 // OSTEP P31, xv6 process
 struct CPU_Context {
 	u64 rip;

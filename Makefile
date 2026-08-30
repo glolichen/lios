@@ -59,6 +59,14 @@ debug: clean os.iso
 run: clean os.iso
 	$(QEMU) $(QEMU_FLAGS)
 
+disk:
+	sudo losetup -Pf --show disk.img
+	sudo mount --mkdir /dev/loop0p1 disk_mnt/
+	sudo cp -r disk/* disk_mnt/
+	sudo umount /dev/loop0p1
+	rm -rf disk_mnt/
+
+
 %.o: %.c
 	$(CC) $(COMPILE_FLAGS) $< -o $@
 

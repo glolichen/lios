@@ -157,8 +157,13 @@ void fat32_init(struct Partition part) {
 		panic("FAT32: only 2 FATs supported!");
 	if (bpb->BPB_SecPerClus != 1)
 		panic("FAT32: only 1 sector per cluster supported!");
-	if (bpb->BPB_TotSec16 != 0 || bpb->BPB_FATSz16 != 0 || bpb->BPB_TotSec32 == 0)
+	if (bpb->BPB_TotSec16 != 0 || bpb->BPB_FATSz16 != 0 || bpb->BPB_TotSec32 == 0)  {
+		serial_error(
+			"TotSec16 = %u, FatSz16 = %u, TotSec32 = %u",
+			bpb->BPB_TotSec16, bpb->BPB_FATSz16, bpb->BPB_TotSec32
+		);
 		panic("FAT32: appears to be FAT12/16?");
+	}
 	if (bpb->Signature_word != 0xAA55)
 		panic("FAT32: incorrect signature word!");
 

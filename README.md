@@ -34,7 +34,7 @@ Backburner:
 
 Sort of based on Linux, with other self-imposed janks as well.
  * 0xFFFFFFFF80000000-0xFFFFFFFFFFFFFFFF (highest 2GiB) is directly mapped to the first 2GiB of physical memory. Paging structures, and also DMA structures sometime in the future, are stored here. Used for `kmalloc`
- * 0xFFFFF00000000000-0xFFFFFFFF80000000 are used for other pieces of kernel memory. Used for `vmalloc`. Page frames used by `vmalloc` come from physical memory above the 2GiB mark. User page frames also come from there.
+ * 0xFFFFF00000000000-0xFFFFFFFF80000000 are used for other pieces of kernel memory. Used for `vmalloc`. Page frames used by `vmalloc` come from physical memory above the 2GiB mark. User page frames also come from there. This is just slightly less than 16 TiB so there's no risk of running out of this space.
  * 0xFFFF800000000000-??? reserved for VGA frame buffer virtual address.
  * 0xFFFF900000000000-??? are used to temporarily map PCI device configuration spaces when looking for NVMe drives, and is then used to map the NVMe device for future use.
  * Lower-half virtual memory for user processes.
@@ -61,5 +61,5 @@ create qemu drive: `qemu-img create -f raw disk.img [size]` and create GPT with 
 
 ## Dependencies
 
-LiOS depends on GNU-EFI for parsing EFI information. Clone [https://git.code.sf.net/p/gnu-efi/code](https://git.code.sf.net/p/gnu-efi/code) to the base directory and to the folder `gnu-efi`.
+LiOS depends on GNU-EFI for parsing EFI information; clone recursively or pull the submodule.
 

@@ -1,5 +1,27 @@
 # LiOS Journal
 
+## C Support
+
+We probably don't want to be writing every user space app in assembly. To do this we need a C library (libc) and a C runtime.
+
+### C Runtime
+
+The C runtime is just what's run before `main()` is called to set up the environment and exit with a system call afterwards. Recall that by convention the kernel starts executing at `_start` not `main` so we can create an object `crt0.o` to define the `_start` symbol.
+
+Ok, now to compile a C program using our custom C runtime:
+
+1. assemble the C runtime (`crt0.s`) with nasm
+2. compile the C program WITHOUT linking (`gcc -c program.c -o program.o`)
+3. link object against `crt0.o` `gcc -nostartfiles crt0.o program.o` (`-nostartfiles` tells compiler not to link against standard C runtime)
+
+`-masm=intel` might be needed for step 2 since I am quite fond of Intel assembly.
+
+For now we're not supporting `argc` and `argv`. These are a bit more complicated to set up (putting the `argv` on the stack, finding its size/`argc`, etc) so we'll deal with this later.
+
+### libc
+
+A lot of libc functions like standard IO, file API, process API (fork/exec/wait/exit) rely on kernel specifically through system calls so LiOS will need a somewhat bespoke C library. We can implement some of this ourselves but it's also plausible to attempt to port an existing libc like [musl](https://en.wikipedia.org/wiki/Musl) (which is fairly lightweight and "only" around 60k lines in total, compared to glibc which is multiple times that).
+
 ## System Calls
 
 LiOS now has system calls! Since I'm lazy, we will use the old-fashioned `int 80h` instead of the new `syscall` and `sysenter`. (Syscalls are needed for user programs to do things they do not usually have permission to do by asking the kernel to do it for them. This includes file reading and writing and IO from the terminal.) As with other operating systems, the user program would specify which routine it wants to be performed and other parameters by setting certain CPU registers. I will try to copy Linux ([Linux syscall table](https://filippo.io/linux-syscall-table/)) as much as possible.
@@ -22,10 +44,13 @@ To compile assembly programs with NASM: `nasm -felf64 [FILE].s` to assembly then
 
 Basic program loading works now. See `crash.s` - it tries to execute the privileged `cli` and `hlt` instructions, which of course is not allowed for user mode programs. After loading the program the OS immediately crashes with a general protection fault, which is exactly what we want to happen.
 
-For future me: it is recommended to open two extra terminals. One should be used to mount and unmount the disk. After running `sudo losetup -Pf --show disk.img` to set up the loop device, change directory to `/home/jayden/Desktop/Programs/os`. Mount the disk with `sudo mount /dev/loop0p1 disk/`. **After making changes to the disk image by copying new programs, make sure to unmount the disk with `sudo umount /dev/loop0p1`!!** Otherwise the changes will not be written!!
+For future me: it is recommended to open two extra terminals. One should be used to mount and unmount the disk.
 
-The other should be in `/home/jayden/Desktop/Programs/os/programs` where programs can be assembled and linked easily with one command: `nasm -felf64 [FILE].s && ld [FILE].o -o [FILE]`. Copy to the disk with `sudo cp [FILE] ../disk/[FILE]`.
+1. `sudo losetup -Pf --show disk.img` (`sudo losetup -Pf --show disk.img`)
+2. `sudo mount /dev/loopNp1 disk/`
+3. **After making changes to the disk image by copying new programs, make sure to unmount the disk with `sudo umount /dev/loop0p1`!!** Otherwise the changes will not be written!!
 
+`/home/jayden/Desktop/Programs/os/programs` where programs can be assembled and linked easily with one command: `nasm -felf64 [FILE].s && ld [FILE].o -o [FILE]`. Copy to the disk with `sudo cp [FILE] ../disk/[FILE]`.
 
 ## Switch to User Mode / Ring 3
 
@@ -117,7 +142,7 @@ Currently, we can do the following:
 
 Ideally I would like the disk image to have partitions which are formatted in our chosen file system, and for us to be able to mount that file on our local computer for reading and writing.
 
-1. Create the disk `qemu-img create -f raw disk.img [size]`
+1. Create the disk `qemu-img create -f raw disk.img 256M`
 2. Add a GUID Partition Table (GPT) `sudo parted disk.img mklabel gpt`
 3. Create a FAT32 partition `sudo parted disk.img mkpart primary fat32 0% 100%`
 4. Set up a loop device `sudo losetup -Pf --show disk.img`

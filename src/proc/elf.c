@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include "elf.h"
 #include "elfdefs.h"
+#include "proc.h"
 #include "../io/output.h"
 #include "../file/fat32.h"
 #include "../mem/vmalloc.h"
@@ -13,8 +14,10 @@ void enter_user_mode(u64 stack_base, u64 entry_point);
 
 bool elf_load(const char *name, const char *ext) {
 	struct FAT32_OpenResult file_data = fat32_open(name, ext);
-	if (file_data.cluster == 0)
+	if (file_data.cluster == 0) {
+		serial_error("file %s.%s not found!", name, ext);
 		return false;
+	}
 
 	serial_info("file read size: %u\n", file_data.size_or_error.size);
 	void *buffer = vcalloc(file_data.size_or_error.size * 512);
@@ -124,12 +127,19 @@ bool elf_load(const char *name, const char *ext) {
 
 	// vfree(buffer);
 
-	u64 user_stack_phys = pmm_alloc_high();
-	u64 *user_stack = (u64 *) 0x800000;
-	page_map((u64) user_stack, user_stack_phys, false);
+	// stack starts at 0x7FFFFFFFFFFF and ends at 0x7FFFFFFFFFFF - 8MiB
 
-	enter_user_mode((u64) user_stack + 0x1000, entry_point);
-	// enter_user_mode((u64) user_stack + 0x1000, 0);
+	u64 stack_num_pages = STACK_SIZE / PAGE_SIZE;
+	u64 *stack_pages = vmalloc(stack_num_pages * sizeof(u64));
+
+	u64 stack_low = LOWER_HALF_MEM_MAX - STACK_SIZE;
+
+	for (u64 i = 0; i < stack_num_pages; i++) {
+		stack_pages[i] = pmm_alloc_high();
+		page_map(stack_low + i * PAGE_SIZE, stack_pages[i], true);
+	}
+
+	enter_user_mode(LOWER_HALF_MEM_MAX, entry_point);
 
 	return true;
 }
