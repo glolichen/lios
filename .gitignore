@@ -9,4 +9,5 @@ libgcc.a
 bx_enh_dbg.ini
 a.out
 .cache/
-disk/
+disk_mnt/
+compile_commands.json

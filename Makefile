@@ -7,7 +7,7 @@ CC = x86_64-elf-gcc
 COMPILE_FLAGS = -ffreestanding -mno-red-zone -fstrict-aliasing \
 				-Wno-variadic-macros -W -Wpedantic -Wextra -Wall -Wcast-align -Wcast-qual -Wstrict-aliasing -Wframe-larger-than=32768 -Wno-strict-overflow -Wsync-nand -Wtrampolines -Wsign-compare -Werror=float-equal -Werror=missing-braces -Werror=init-self -Werror=logical-op -Werror=write-strings -Werror=address -Werror=array-bounds -Werror=char-subscripts -Werror=enum-compare -Werror=implicit-int -Werror=empty-body -Werror=main -Werror=aggressive-loop-optimizations -Werror=nonnull -Werror=parentheses -Werror=pointer-sign -Werror=return-type -Werror=sequence-point -Werror=uninitialized -Werror=volatile-register-var -Werror=ignored-qualifiers -Werror=missing-parameter-type -Werror=old-style-declaration -Wno-error=maybe-uninitialized -Wno-unused-function -Wodr -Wformat-signedness -Wsuggest-final-types -Wsuggest-final-methods -Wno-ignored-attributes -Wno-missing-field-initializers -Wshift-overflow=2 -Wduplicated-cond -Wduplicated-branches -Werror=restrict -Wdouble-promotion -Wformat=2 -lgcc \
 				-c -z max-page-size=0x1000 -mcmodel=kernel -masm=intel -mgeneral-regs-only -O3 -lgcc --debug -g -fno-pie -I gnu-efi/inc/
-LINK_FLAGS = -T link.ld -o iso/boot/os.bin -ffreestanding -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -O3 -nostdlib -lgcc -z max-page-size=0x1000 -no-pie 
+LINK_FLAGS = -T src/link.ld -o iso/boot/os.bin -ffreestanding -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -O3 -nostdlib -lgcc -z max-page-size=0x1000 -no-pie 
 
 QEMU = qemu-system-x86_64
 QEMU_FLAGS = -boot c \
@@ -19,7 +19,7 @@ QEMU_FLAGS = -boot c \
 			 -M q35 \
 			 -m 8G \
 			 -cpu qemu64 \
-			 -bios copy_OVMF.4m.fd \
+			 -bios boot/copy_OVMF.4m.fd \
 			 -monitor stdio \
 			 -drive file=disk.img,if=none,format=raw,id=nvm \
 			 -device nvme,serial=deadbeef,drive=nvm
@@ -50,11 +50,11 @@ kernel: $(OBJECTS)
 	$(CC) $(LINK_FLAGS) $(OBJECTS)
 
 os.iso: kernel
-	cp grub.cfg iso/boot/grub/grub.cfg
+	cp boot/grub.cfg iso/boot/grub/grub.cfg
 	grub-mkrescue -o iso/os.iso iso/
 
 debug: clean os.iso
-	bochs -f bochsrc.txt -q
+	bochs -f boot/bochsrc.txt -q
 
 run: clean os.iso
 	$(QEMU) $(QEMU_FLAGS)
