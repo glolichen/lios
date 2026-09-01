@@ -12,9 +12,18 @@ typedef uint32_t u32;
 typedef int64_t i64;
 typedef uint64_t u64;
 
+#define PRINT_PERFORMANCE_MODE 0
+
+#if PRINT_PERFORMANCE_MODE == 0
 #define PRINT_INFO_SERIAL 1
 #define PRINT_DEBUG_SERIAL 1
 #define PRINT_WARN_SERIAL 1
+#else
+#define PRINT_INFO_SERIAL 0
+#define PRINT_DEBUG_SERIAL 0
+#define PRINT_WARN_SERIAL 0
+#endif
+
 
 #define KERNEL_OFFSET 0xFFFFFFFF80000000
 

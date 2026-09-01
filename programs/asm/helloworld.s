@@ -16,5 +16,3 @@ _start:
 	int 128
 	int 128
 
-	jmp $
-

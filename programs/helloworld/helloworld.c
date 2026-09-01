@@ -5,7 +5,7 @@ int main(void) {
 	asm volatile("mov rax, 1; mov rdi, 1");
 	asm volatile("mov rsi, %0" :: "rm"(msg));
 	asm volatile("mov rdx, %0" :: "rm"(length));
-	asm volatile("syscall");
+	asm volatile("int 128");
 
 	return 0;
 }

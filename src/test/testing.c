@@ -1,17 +1,63 @@
 #include "testing.h"
-#include "io/output.h"
-#include "mem/kmalloc.h"
-#include "mem/vmalloc.h"
-#include "mem/vmm.h"
-#include "mem/page.h"
-#include "mem/pmm.h"
-#include "file/nvme.h"
-#include "file/fat32.h"
-#include "util/const.h"
-#include "util/hexdump.h"
+#include "../io/output.h"
+#include "../mem/kmalloc.h"
+#include "../mem/vmalloc.h"
+#include "../mem/vmm.h"
+#include "../mem/page.h"
+#include "../mem/pmm.h"
+#include "../file/nvme.h"
+#include "../file/fat32.h"
+#include "../util/const.h"
+#include "../util/arraylist.h"
+#include "../util/hexdump.h"
 
 void test_div0(void) {
 	asm volatile("mov rax, 0; mov rbx, 0; div rbx");
+}
+
+void arraylist_test(void) {
+	struct ArrayList al = arraylist_new(4);
+	u64 index = arraylist_add(&al);
+	((u32 *) al.l)[index] = 9;
+	vga_printf("index %u = %u\n", index, ((u32 *) al.l)[index]);
+
+	index = arraylist_add(&al);
+	((u32 *) al.l)[index] = 34;
+	vga_printf("index %u = %u\n", index, ((u32 *) al.l)[index]);
+
+	index = arraylist_add(&al);
+	((u32 *) al.l)[index] = 5;
+	vga_printf("index %u = %u\n", index, ((u32 *) al.l)[index]);
+
+	for (u64 i = 0; i < 3; i++)
+		vga_printf("  index %u = %u\n", i, ((u32 *) al.l)[i]);
+
+	index = arraylist_add(&al);
+	((u32 *) al.l)[index] = 2;
+	vga_printf("index %u = %u\n", index, ((u32 *) al.l)[index]);
+
+	index = arraylist_add(&al);
+	((u32 *) al.l)[index] = 12;
+	vga_printf("index %u = %u\n", index, ((u32 *) al.l)[index]);
+
+	index = arraylist_add(&al);
+	((u32 *) al.l)[index] = 50;
+	vga_printf("index %u = %u\n", index, ((u32 *) al.l)[index]);
+
+	index = arraylist_add(&al);
+	((u32 *) al.l)[index] = 243;
+	vga_printf("index %u = %u\n", index, ((u32 *) al.l)[index]);
+
+	for (u64 i = 0; i < al.size; i++)
+		vga_printf("  index %u = %u\n", i, ((u32 *) al.l)[i]);
+
+	vga_printf("removing index 4 = %u\n", ((u32 *) al.l)[4]);
+	arraylist_remove(&al, 4);
+
+	for (u64 i = 0; i < al.size; i++)
+		vga_printf("  index %u = %u\n", i, ((u32 *) al.l)[i]);
+
+	arraylist_free(&al);
 }
 
 void fat32_test(void) {

@@ -8,8 +8,6 @@
 #include "../util/panic.h"
 #include "../mem/vmalloc.h"
 
-#include "../testing.h"
-
 #define LSHIFT 42
 #define RSHIFT 54
 #define CONTROL 29

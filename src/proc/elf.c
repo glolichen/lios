@@ -8,43 +8,51 @@
 #include "../mem/pmm.h"
 #include "../mem/page.h"
 #include "../util/hexdump.h"
+#include "../util/kmath.h"
 #include "../util/misc.h"
 
 void enter_user_mode(u64 stack_base, u64 entry_point);
 
-bool elf_load(const char *name, const char *ext) {
+// TODO: on program exit syscall these all need to be handled
+//  - physical page frames need to be freed
+//  - segment vaddr -> page frame mapping to be removed
+//  - file buffer freed
+
+struct ELFContext elf_load(const char *name, const char *ext) {
+	struct ELFContext ctx = (struct ELFContext) { 0 };
+
 	struct FAT32_OpenResult file_data = fat32_open(name, ext);
 	if (file_data.cluster == 0) {
 		serial_error("file %s.%s not found!", name, ext);
-		return false;
+		goto failure1;
 	}
 
 	serial_info("file read size: %u\n", file_data.size_or_error.size);
-	void *buffer = vcalloc(file_data.size_or_error.size * 512);
-	fat32_read(file_data.cluster, file_data.size_or_error.size, buffer);
+	ctx.file_buffer = vcalloc(file_data.size_or_error.size * 512);
+	fat32_read(file_data.cluster, file_data.size_or_error.size, ctx.file_buffer);
 
-	hexdump(buffer, file_data.size_or_error.size * 512, true);
+	hexdump(ctx.file_buffer, file_data.size_or_error.size * 512, true);
 
-	struct ELF_Header *header = (struct ELF_Header *) buffer;
+	struct ELF_Header *header = (struct ELF_Header *) ctx.file_buffer;
 
 	// for below, see Wikipedia page section "ELF header"
 
 	// ELF files start eith 0x7F, E, L, F
 	const unsigned char *ident = header->e_ident;
 	if (ident[0] != 0x7F || ident[1] != 'E' || ident[2] != 'L' || ident[3] != 'F')
-		return false;
-	
+		goto failure2;
+
 	// we only execute 64 bit binaries
 	if (ident[4] != 2)
-		return false;
+		goto failure2;
 
 	// must be little-endian, as x86 architecture is that way
 	if (ident[5] != 1)
-		return false;
+		goto failure2;
 
 	// must be current version of ELF
 	if (ident[6] != 1)
-		return false;
+		goto failure2;
 
 	// NOTE: Wikipedia says the next bytes encode "Target ABI"
 	// but the ELF spec says not, and since there is current no
@@ -52,14 +60,14 @@ bool elf_load(const char *name, const char *ext) {
 	
 	// we can only execute executable (obviously)
 	if (header->e_type != 2)
-		return false;
+		goto failure2;
 
 	// 0x3E is AMD64/x86-64, which is our target architecture
 	if (header->e_machine != 0x3E)
-		return false;
+		goto failure2;
 
 	if (header->e_version != 1)
-		return false;
+		goto failure2;
 
 	u64 entry_point = header->e_entry;
 
@@ -69,7 +77,7 @@ bool elf_load(const char *name, const char *ext) {
 
 	// program header size must equal 64
 	if (header->e_ehsize != 64)
-		return false;
+		goto failure2;
 
 	u16 ph_entry_size = header->e_phentsize;
 	u16 ph_entry_count = header->e_phnum;
@@ -91,9 +99,17 @@ bool elf_load(const char *name, const char *ext) {
 
 	// the program headers/segments are what matters for loading, which is what we're doing
 	// sections are for the linker, and the executable files we're dealing with are already linked
-	
 	struct ELF_ProgramHeader *ph = (struct ELF_ProgramHeader *) ((u64) header + ph_start);
+	
+	u64 num_valid_segments = 0;
 	for (u16 i = 0; i < ph_entry_count; i++) {
+		if (ph[i].p_type == 1)
+			num_valid_segments++;
+	}
+
+	ctx.segments = vcalloc(num_valid_segments * sizeof(struct ELFSegmentMem));
+
+	for (u16 i = 0, valid_index = 0; i < ph_entry_count; i++) {
 		if (ph[i].p_type != 1) {
 			serial_warn("elf: found segment with type %u, skipping", ph[i].p_type);
 			continue;
@@ -106,13 +122,32 @@ bool elf_load(const char *name, const char *ext) {
 		u64 flags = ph[i].p_flags;
 		u64 align = ph[i].p_align;
 
-		void *segment = (void *) virt_addr;
-
 		// FIXME: only works on segments <4KiB, anything larger will break!!!
-		u64 phys = pmm_alloc_high();
-		page_map((u64) segment, phys, false);
+		// NOTE: fixed above, need to test
+		//
+		// NOTE: per https://stackoverflow.com/a/31011428, we need to allocate
+		// p_memsz bytes for the segment. this is larger than p_filesz because
+		// it may contain a .bss section. the part of the memory allocated
+		// after the "p_filesz" mark is all zero
 
-		memcpy(segment, (void *) ((u64) buffer + file_offset), file_size);
+		u64 segment_num_pages = ceil_u64_div(memory_size, PAGE_SIZE);
+		u64 *segment_pages = vmalloc(segment_num_pages * sizeof(u64));
+
+		for (u64 j = 0; j < segment_num_pages; j++) {
+			segment_pages[j] = pmm_alloc_high();
+			page_map(virt_addr + j * PAGE_SIZE, segment_pages[j], false);
+		}
+
+		void *segment_vaddr = (void *) virt_addr;
+		memcpy(segment_vaddr, (void *) ((u64) ctx.file_buffer + file_offset), file_size);
+		// zero remaining segment for .bss
+		memset((u8 *) segment_vaddr + file_size, 0, memory_size - file_size);
+
+		ctx.segments[valid_index] = (struct ELFSegmentMem) {
+			.vaddr = virt_addr,
+			.num_pages = segment_num_pages,
+			.pages = segment_pages
+		};
 
 		serial_info("elf: program header entry %u:", i);
 		serial_info("    offset in file: 0x%x", file_offset);
@@ -123,24 +158,40 @@ bool elf_load(const char *name, const char *ext) {
 		serial_info("    align: 0x%x", align);
 
 		hexdump((void *) virt_addr, memory_size, true);
+
+		valid_index++;
 	}
 
 	// vfree(buffer);
 
-	// stack starts at 0x7FFFFFFFFFFF and ends at 0x7FFFFFFFFFFF - 8MiB
+	// set up the stack
+	// stack starts at 0x800000000000 and ends at 0x800000000000 - 8MiB
 
+	// NOTE: would normally need ceil_u64_div here but
+	// STACK_SIZE is a multiple of PAGE_SIZE
 	u64 stack_num_pages = STACK_SIZE / PAGE_SIZE;
-	u64 *stack_pages = vmalloc(stack_num_pages * sizeof(u64));
+	ctx.proc_stack_pages = vmalloc(stack_num_pages * sizeof(u64));
 
 	u64 stack_low = LOWER_HALF_MEM_MAX - STACK_SIZE;
 
 	for (u64 i = 0; i < stack_num_pages; i++) {
-		stack_pages[i] = pmm_alloc_high();
-		page_map(stack_low + i * PAGE_SIZE, stack_pages[i], true);
+		ctx.proc_stack_pages[i] = pmm_alloc_high();
+		page_map(stack_low + i * PAGE_SIZE, ctx.proc_stack_pages[i], false);
 	}
 
-	enter_user_mode(LOWER_HALF_MEM_MAX, entry_point);
+	ctx.entry_point = entry_point;
+	ctx.rbp_rsp = LOWER_HALF_MEM_MAX;
+	ctx.stack_size = STACK_SIZE;
 
-	return true;
+	return ctx;
+
+	// serial_info("hi");
+	// enter_user_mode(LOWER_HALF_MEM_MAX, entry_point);
+	// serial_info("hello");
+
+failure2:
+	vfree(ctx.file_buffer);
+failure1:
+	return (struct ELFContext) { 0 };
 }
 

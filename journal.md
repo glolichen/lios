@@ -11,10 +11,10 @@ The C runtime is just what's run before `main()` is called to set up the environ
 Ok, now to compile a C program using our custom C runtime:
 
 1. assemble the C runtime (`crt0.s`) with nasm
-2. compile the C program WITHOUT linking (`gcc -c program.c -o program.o`)
-3. link object against `crt0.o` `gcc -nostartfiles crt0.o program.o` (`-nostartfiles` tells compiler not to link against standard C runtime)
+2. compile the C program without linking (`gcc -c -masm=intel -fno-PIC -fno-pie program.c -o program.o`)
+3. link object against `crt0.o` `gcc -nostartfiles -no-pie program.o crt/crt0.o -o program` (`-nostartfiles` tells compiler not to link against standard C runtime)
 
-`-masm=intel` might be needed for step 2 since I am quite fond of Intel assembly.
+Very important to disable position independent code. `-masm=intel` might be needed for step 2 since I am quite fond of Intel assembly.
 
 For now we're not supporting `argc` and `argv`. These are a bit more complicated to set up (putting the `argv` on the stack, finding its size/`argc`, etc) so we'll deal with this later.
 
@@ -47,7 +47,7 @@ Basic program loading works now. See `crash.s` - it tries to execute the privile
 For future me: it is recommended to open two extra terminals. One should be used to mount and unmount the disk.
 
 1. `sudo losetup -Pf --show disk.img` (`sudo losetup -Pf --show disk.img`)
-2. `sudo mount /dev/loopNp1 disk/`
+2. `sudo mount /dev/loopNp1 disk_mnt/`
 3. **After making changes to the disk image by copying new programs, make sure to unmount the disk with `sudo umount /dev/loop0p1`!!** Otherwise the changes will not be written!!
 
 `/home/jayden/Desktop/Programs/os/programs` where programs can be assembled and linked easily with one command: `nasm -felf64 [FILE].s && ld [FILE].o -o [FILE]`. Copy to the disk with `sudo cp [FILE] ../disk/[FILE]`.

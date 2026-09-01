@@ -10,6 +10,7 @@ u64 floor_u64_div(u64 dividend, u64 divisor);
 u32 ceil_u32_div(u32 dividend, u32 divisor);
 u32 floor_u32_div(u32 dividend, u32 divisor);
 
+u64 u64_min(u64 a, u64 b);
 u64 u64_max(u64 a, u64 b);
 
 #endif

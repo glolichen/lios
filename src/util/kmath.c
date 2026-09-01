@@ -30,6 +30,9 @@ u32 floor_u32_div(u32 dividend, u32 divisor) {
 	return floor * divisor == dividend ? floor : floor - 1;
 }
 
+u64 u64_min(u64 a, u64 b) {
+	return a < b ? a : b;
+}
 u64 u64_max(u64 a, u64 b) {
 	return a > b ? a : b;
 }

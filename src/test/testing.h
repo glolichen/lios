@@ -1,9 +1,10 @@
 #ifndef TESTING_H
 #define TESTING_H
 
-#include "file/nvme.h"
+#include "../file/nvme.h"
 
 void test_div0(void);
+void arraylist_test(void);
 void test_run_tests(void);
 
 #endif

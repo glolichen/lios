@@ -2,11 +2,12 @@
 #define PROCESS_H
 
 #include "../util/const.h"
+#include "elf.h"
 
 // 8 MiB, like Linux
 #define STACK_SIZE 0x800000
 // highest lower half / "user" memory address
-#define LOWER_HALF_MEM_MAX 0x00007FFFFFFFFFFF
+#define LOWER_HALF_MEM_MAX 0x800000000000
 
 // OSTEP P31, xv6 process
 struct CPU_Context {
@@ -30,6 +31,8 @@ enum ProcessState {
 };
 
 struct Process {
+	struct ELFSegmentMem segment_mem;
+
 	u8 *mem; // Start of process memory
 	u64 sz; // Size of process memory
 	u8 *kstack; // Bottom of kernel stack
@@ -47,5 +50,7 @@ struct Process {
 	// struct context context; // Switch here to run process
 	// struct trapframe *tf; // Trap frame for the
 };
+
+struct Process *proc_create();
 
 #endif

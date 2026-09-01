@@ -1,16 +1,16 @@
-#include "testing.h"
-
 #include "int/interrupt.h"
 
 #include "io/serial.h"
 #include "io/output.h"
 #include "io/vga.h"
 
+#include "util/arraylist.h"
 #include "util/const.h"
 #include "util/panic.h"
 #include "util/kmath.h"
 #include "util/hexdump.h"
 #include "util/multiboot2.h"
+#include "util/arraylist.h"
 #include "util/misc.h"
 
 #include "mem/vmm.h"
@@ -25,6 +25,10 @@
 #include "file/fat32.h"
 
 #include "proc/elf.h"
+#include "proc/proc.h"
+
+#include "test/testing.h"
+#include "test/listtest.h"
 
 struct __attribute__((packed)) GDTEntryTSS {
 	u16 limit_low;
@@ -348,15 +352,21 @@ void kmain(struct GDTEntryTSS *tss_entry, struct TaskStateSegment *tss, u64 tss_
 	u64 new_kernel_stack = (u64) kmalloc_page();
 	tss->rsp0 = new_kernel_stack;
 
+	// arraylist_test();
+
+	// arraylist_torture_test();
+
 	// u64 user_stack_phys = pmm_alloc_low();
 	// u64 *user_stack = (u64 *) 0x800000;
 	// page_map((u64) user_stack, user_stack_phys, false);
 
 	// enter_user_mode((u64) user_stack + 0x1000);
 
-
 	// elf_load("CRASH", "OUT");
-	// elf_load("HLWORLD", "OUT");
-	elf_load("INPUT", "OUT");
+	// bool status = elf_load("HLWORLD", "OUT");
+	// serial_info("status %u\n", status);
+
+	// elf_load("INPUT", "OUT");
+
 }
 
